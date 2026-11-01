@@ -10,9 +10,9 @@ import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/signup")({
   validateSearch: (search: Record<string, unknown>) => {
-    const raw = Number(search.amount);
+    const raw = Number(search["amount"]);
     return {
-      amount: search.amount !== undefined ? clampInvestment(raw) : 500,
+      amount: search["amount"] !== undefined ? clampInvestment(raw) : 500,
     };
   },
   head: () => ({
