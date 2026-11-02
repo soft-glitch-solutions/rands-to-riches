@@ -73,34 +73,117 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   );
 }
 
+const SCHEMA_JSON_LD = JSON.stringify({
+  "@context": "https://schema.org",
+  "@graph": [
+    {
+      "@type": "FinancialService",
+      "@id": "https://motuscapital.co.za/#organization",
+      "name": "MOTUS Capital",
+      "legalName": "MOTUS Capital (Pty) Ltd",
+      "url": "https://motuscapital.co.za",
+      "logo": "https://motuscapital.co.za/favicon.ico",
+      "description":
+        "South Africa's premier mobility investment platform. Invest in commercial e-hailing and delivery fleets from R100 with returns up to 25%.",
+      "address": {
+        "@type": "PostalAddress",
+        "streetAddress": "1 Sandton Drive, Sandhurst",
+        "addressLocality": "Johannesburg",
+        "addressRegion": "Gauteng",
+        "postalCode": "2196",
+        "addressCountry": "ZA",
+      },
+      "geo": {
+        "@type": "GeoCoordinates",
+        "latitude": -26.2041,
+        "longitude": 28.0473,
+      },
+      "telephone": "+27 11 000 0000",
+      "email": "invest@motuscapital.co.za",
+      "priceRange": "R100 - R10000",
+      "currenciesAccepted": "ZAR",
+      "paymentAccepted": "EFT, Ozow, Capitec Pay, Bank Transfer",
+      "sameAs": [
+        "https://www.facebook.com/motuscapital",
+        "https://twitter.com/motuscapital",
+        "https://www.linkedin.com/company/motuscapital",
+        "https://www.instagram.com/motuscapital",
+      ],
+    },
+    {
+      "@type": "WebSite",
+      "@id": "https://motuscapital.co.za/#website",
+      "url": "https://motuscapital.co.za",
+      "name": "MOTUS Capital",
+      "publisher": {
+        "@id": "https://motuscapital.co.za/#organization",
+      },
+      "inLanguage": "en-ZA",
+    },
+  ],
+});
+
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "MOTUS Capital — Your money in motion" },
+      { name: "viewport", content: "width=device-width, initial-scale=1, maximum-scale=5" },
+      { title: "MOTUS Capital — South Africa's Fleet Investment Platform" },
       {
         name: "description",
         content:
-          "Invest in South Africa's growing e-hailing and delivery economy from just R100. MOTUS Capital puts your money in motion.",
+          "Invest in South Africa's growing e-hailing and delivery economy from just R100. Earn 13%–25% returns with flexible 30 to 90-day cycles and direct EFT payouts.",
       },
+      {
+        name: "keywords",
+        content:
+          "invest South Africa, micro investment SA, fleet investment, e-hailing Uber Bolt investment, passive income South Africa, R100 investment, high yield monthly return, Motus Capital",
+      },
+      { name: "robots", content: "index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" },
       { name: "author", content: "MOTUS Capital" },
-      { property: "og:title", content: "MOTUS Capital — Your money in motion" },
+      { name: "application-name", content: "MOTUS Capital" },
+      { name: "theme-color", content: "#1d63ed" },
+      { name: "geo.region", content: "ZA-GP" },
+      { name: "geo.placename", content: "Johannesburg" },
+      { name: "geo.position", content: "-26.2041;28.0473" },
+      { name: "ICBM", content: "-26.2041, 28.0473" },
+
+      // Open Graph
+      { property: "og:site_name", content: "MOTUS Capital" },
+      { property: "og:locale", content: "en_ZA" },
+      { property: "og:type", content: "website" },
+      { property: "og:title", content: "MOTUS Capital — South Africa's Fleet Investment Platform" },
       {
         property: "og:description",
         content:
-          "Invest in South Africa's growing e-hailing and delivery economy from just R100.",
+          "Put your money in motion. Invest in real commercial vehicles and motorcycles from R100 with returns up to 25%.",
       },
-      { property: "og:type", content: "website" },
+      { property: "og:url", content: "https://motuscapital.co.za" },
+
+      // Twitter Cards
       { name: "twitter:card", content: "summary_large_image" },
       { name: "twitter:site", content: "@motuscapital" },
+      { name: "twitter:creator", content: "@motuscapital" },
+      { name: "twitter:title", content: "MOTUS Capital — Your Money in Motion" },
+      {
+        name: "twitter:description",
+        content:
+          "South Africa's retail mobility investment platform. Start with R100, earn 13%–25% on 30-90 day cycles.",
+      },
     ],
     links: [
+      { rel: "canonical", href: "https://motuscapital.co.za" },
       {
         rel: "stylesheet",
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: SCHEMA_JSON_LD,
+      },
     ],
   }),
   shellComponent: RootShell,
@@ -111,7 +194,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en-ZA">
       <head>
         <HeadContent />
       </head>
