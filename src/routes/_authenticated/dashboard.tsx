@@ -12,10 +12,10 @@ import {
   type MaturityAction,
 } from "@/server/investments";
 import { BrandMark } from "@/components/site-shell";
+import { InvestmentSlider } from "@/components/investment-slider";
 import { Button } from "@/components/ui/button";
 import {
   INVESTMENT_TERM_DAYS,
-  QUICK_AMOUNTS,
   clampInvestment,
   formatDate,
   formatRand,
@@ -45,8 +45,8 @@ function DashboardPage() {
   const checkAdmin = useServerFn(isUserAdmin);
 
   const { amount: searchAmount } = Route.useSearch();
-  const [pendingAmount, setPendingAmount] = useState<number | null>(
-    searchAmount ?? takePendingAmount(),
+  const [pendingAmount, setPendingAmount] = useState<number>(
+    searchAmount ?? takePendingAmount() ?? 500,
   );
   const [newAction, setNewAction] = useState<MaturityAction>("withdraw");
   const [busy, setBusy] = useState(false);
@@ -63,14 +63,12 @@ function DashboardPage() {
   });
 
   const investNow = async () => {
-    if (pendingAmount === null) return;
     setBusy(true);
     setError(null);
     try {
       await startInvestment({
         data: { amountRands: pendingAmount, maturityAction: newAction },
       });
-      setPendingAmount(null); // also clears the stored intent
       await queryClient.invalidateQueries({ queryKey: ["my-investments"] });
     } catch (err) {
       setError(err instanceof Error ? err.message : "Something went wrong.");
@@ -176,28 +174,16 @@ function DashboardPage() {
               : "Start another investment cycle"}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Choose an amount from R100 to R1,000 and how you'd like it handled
-            after the {INVESTMENT_TERM_DAYS}-day cycle.
+            Choose an amount and how you'd like it handled after the{" "}
+            {INVESTMENT_TERM_DAYS}-day cycle.
           </p>
 
-          <div className="mt-5 flex flex-wrap items-center gap-2">
-            {QUICK_AMOUNTS.map((amount) => (
-              <button
-                key={amount}
-                type="button"
-                onClick={() => setPendingAmount(amount)}
-                className={
-                  pendingAmount === amount
-                    ? "rounded-full border border-primary bg-primary px-4 py-1.5 text-sm font-semibold text-primary-foreground"
-                    : "rounded-full border border-border bg-card px-4 py-1.5 text-sm font-semibold text-secondary-foreground transition-colors hover:border-primary hover:text-primary"
-                }
-              >
-                {formatRand(amount)}
-              </button>
-            ))}
+          {/* Investment slider */}
+          <div className="mt-6">
+            <InvestmentSlider value={pendingAmount} onChange={setPendingAmount} />
           </div>
 
-          <div className="mt-5 grid gap-2 sm:grid-cols-2">
+          <div className="mt-6 grid gap-2 sm:grid-cols-2">
             {(
               [
                 {
@@ -240,7 +226,7 @@ function DashboardPage() {
 
           <Button
             size="lg"
-            disabled={busy || pendingAmount === null}
+            disabled={busy}
             onClick={investNow}
             className="mt-6 w-full rounded-2xl text-base font-bold sm:w-auto"
           >
@@ -248,10 +234,8 @@ function DashboardPage() {
               <>
                 <Loader2 className="mr-2 size-4 animate-spin" /> Starting…
               </>
-            ) : pendingAmount !== null ? (
-              `Invest ${formatRand(pendingAmount)}`
             ) : (
-              "Pick an amount above"
+              `Invest ${formatRand(pendingAmount)}`
             )}
           </Button>
         </section>
@@ -267,7 +251,7 @@ function DashboardPage() {
             </div>
           ) : investments.length === 0 ? (
             <p className="mt-4 rounded-2xl bg-secondary px-5 py-6 text-sm text-secondary-foreground">
-              No investments yet. Pick an amount above to start your first
+              No investments yet. Use the slider above to start your first
               cycle.
             </p>
           ) : (

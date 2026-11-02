@@ -78,14 +78,22 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     meta: [
       { charSet: "utf-8" },
       { name: "viewport", content: "width=device-width, initial-scale=1" },
-      { title: "Lovable App" },
-      { name: "description", content: "Lovable Generated Project" },
-      { name: "author", content: "Lovable" },
-      { property: "og:title", content: "Lovable App" },
-      { property: "og:description", content: "Lovable Generated Project" },
+      { title: "MOTUS Capital — Your money in motion" },
+      {
+        name: "description",
+        content:
+          "Invest in South Africa's growing e-hailing and delivery economy from just R100. MOTUS Capital puts your money in motion.",
+      },
+      { name: "author", content: "MOTUS Capital" },
+      { property: "og:title", content: "MOTUS Capital — Your money in motion" },
+      {
+        property: "og:description",
+        content:
+          "Invest in South Africa's growing e-hailing and delivery economy from just R100.",
+      },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
-      { name: "twitter:site", content: "@Lovable" },
+      { name: "twitter:site", content: "@motuscapital" },
     ],
     links: [
       {

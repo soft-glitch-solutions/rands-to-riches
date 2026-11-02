@@ -1,6 +1,7 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { InvestmentSlider } from "@/components/investment-slider";
+import { SiteShell } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import {
   INVESTMENT_TERM_DAYS,
@@ -10,6 +11,16 @@ import {
 import heroImage from "@/assets/motus-hero.jpg";
 
 export const Route = createFileRoute("/")({
+  head: () => ({
+    meta: [
+      { title: "MOTUS Capital — Your money in motion" },
+      {
+        name: "description",
+        content:
+          "Invest in the growing e-hailing and delivery economy. Help power the vehicles that keep people and businesses moving — starting from just R100.",
+      },
+    ],
+  }),
   component: Index,
 });
 
@@ -45,26 +56,7 @@ function Index() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* Header */}
-      <header className="sticky top-0 z-10 border-b border-border bg-card/90 backdrop-blur">
-        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
-          <Link to="/" className="flex items-center gap-2">
-            <span className="flex size-9 items-center justify-center rounded-xl bg-primary font-display text-lg font-bold text-primary-foreground">
-              M
-            </span>
-            <span className="font-display text-sm font-bold uppercase tracking-wide text-foreground sm:text-base">
-              Motus Capital
-            </span>
-          </Link>
-          <Button asChild variant="ghost">
-            <Link to="/auth" className="text-primary">
-              Sign in
-            </Link>
-          </Button>
-        </div>
-      </header>
-
+    <SiteShell>
       {/* Hero */}
       <section className="mx-auto max-w-6xl px-4 pb-16 pt-10 sm:px-6 sm:pt-16">
         <div className="grid items-center gap-10 lg:grid-cols-2">
@@ -189,9 +181,8 @@ function Index() {
               More than vehicles
             </h2>
             <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
-              MOTUS Capital is not just about investing in vehicles. It is
-              about supporting the people who use those vehicles to earn a
-              living.
+              MOTUS Capital is not just about investing in vehicles. It is about
+              supporting the people who use those vehicles to earn a living.
             </p>
             <ul className="mt-6 space-y-3">
               {[
@@ -216,7 +207,9 @@ function Index() {
       {/* CTA */}
       <section className="mx-auto max-w-6xl px-4 pb-16 sm:px-6">
         <div className="rounded-3xl bg-primary px-6 py-12 text-center text-primary-foreground sm:px-12">
-          <h2 className="font-display text-3xl font-bold">Your money in motion</h2>
+          <h2 className="font-display text-3xl font-bold">
+            Your money in motion
+          </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-primary-foreground/80 sm:text-base">
             Start with an investment cycle of {INVESTMENT_TERM_DAYS} days.
             Withdraw your capital and any returns payable at maturity, or keep
@@ -232,25 +225,6 @@ function Index() {
           </Button>
         </div>
       </section>
-
-      {/* Footer */}
-      <footer className="border-t border-border bg-card py-10">
-        <div className="mx-auto max-w-6xl px-4 sm:px-6">
-          <p className="font-display text-sm font-bold uppercase tracking-wide text-foreground">
-            Motus Capital
-          </p>
-          <p className="mt-4 max-w-3xl text-xs leading-relaxed text-muted-foreground">
-            Returns are dependent on the investment's actual performance and
-            applicable fees. Investment capital and returns are subject to
-            investment risks and are not guaranteed. This site demonstrates the
-            investment concept only; no investment is being accepted or
-            processed.
-          </p>
-          <p className="mt-4 text-xs text-muted-foreground">
-            © {new Date().getFullYear()} MOTUS Capital — Your money in motion.
-          </p>
-        </div>
-      </footer>
-    </div>
+    </SiteShell>
   );
 }
