@@ -9,10 +9,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Loader2 } from "lucide-react";
 
 export const Route = createFileRoute("/signup")({
-  validateSearch: (search: Record<string, unknown>) => {
+  validateSearch: (search: Record<string, unknown>): { amount?: number } => {
     const raw = Number(search["amount"]);
     return {
-      amount: search["amount"] !== undefined ? clampInvestment(raw) : 500,
+      amount: search["amount"] !== undefined ? clampInvestment(raw) : undefined,
     };
   },
   head: () => ({
@@ -37,7 +37,7 @@ export const Route = createFileRoute("/signup")({
 
 function SignupPage() {
   const navigate = useNavigate();
-  const { amount } = Route.useSearch();
+  const amount = Route.useSearch().amount ?? 500;
   const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");

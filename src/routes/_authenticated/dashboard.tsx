@@ -24,10 +24,10 @@ import {
 import { takePendingAmount } from "@/lib/social-auth";
 
 export const Route = createFileRoute("/_authenticated/dashboard")({
-  validateSearch: (search: Record<string, unknown>) => {
+  validateSearch: (search: Record<string, unknown>): { amount?: number } => {
     const raw = Number(search["amount"]);
     return {
-      amount: search["amount"] !== undefined ? clampInvestment(raw) : null,
+      amount: search["amount"] !== undefined ? clampInvestment(raw) : undefined,
     };
   },
   head: () => ({
