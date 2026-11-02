@@ -94,11 +94,11 @@ const SOCIAL_LINKS = [
 const FAQ_ITEMS = [
   {
     q: "How do I start investing?",
-    a: 'Create an account on our platform, choose your investment amount (R100–R1,000), and select your preferred maturity action. Your investment cycle begins immediately.',
+    a: "Create an account on our platform, choose your plan (1 month from R100, or 2–3 months for amounts up to R10,000), and select your preferred maturity action.",
   },
   {
-    q: "What happens at the end of the 30-day cycle?",
-    a: "At the end of each cycle you can withdraw your capital, or automatically roll it into the next cycle. You set your preference when you invest and can change it at any time.",
+    q: "What happens at the end of the investment cycle?",
+    a: "At the end of your 30, 60 or 90-day cycle, you can withdraw your principal and returns, or automatically roll it into the next cycle. You can change your choice at any time.",
   },
   {
     q: "Are my returns guaranteed?",

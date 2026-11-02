@@ -141,7 +141,7 @@ function AboutPage() {
                 "Accessible investment from R100 per cycle.",
                 "Commercial vehicles and motorcycles generating returns on the road.",
                 "Income opportunities for drivers and delivery riders.",
-                "Transparent 30-day investment cycles with flexible reinvestment.",
+                "Transparent 30 to 90-day investment cycles with flexible reinvestment.",
                 "A growing community of investors and mobility partners.",
               ].map((item) => (
                 <li key={item} className="flex items-start gap-3">

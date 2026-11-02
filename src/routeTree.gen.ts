@@ -12,9 +12,11 @@ import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AuthenticatedRouteRouteImport } from './routes/_authenticated/route'
 import { Route as AboutRouteImport } from './routes/about'
+import { Route as AdminDemoRouteImport } from './routes/admin-demo'
 import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DemoRouteImport } from './routes/demo'
+import { Route as FaqRouteImport } from './routes/faq'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as AuthenticatedAdminRouteImport } from './routes/_authenticated/admin'
 import { Route as AuthenticatedDashboardRouteImport } from './routes/_authenticated/dashboard'
@@ -33,6 +35,11 @@ const AboutRoute = AboutRouteImport.update({
   path: '/about',
   getParentRoute: () => rootRouteImport,
 } as any)
+const AdminDemoRoute = AdminDemoRouteImport.update({
+  id: '/admin-demo',
+  path: '/admin-demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AuthRoute = AuthRouteImport.update({
   id: '/auth',
   path: '/auth',
@@ -46,6 +53,11 @@ const ContactRoute = ContactRouteImport.update({
 const DemoRoute = DemoRouteImport.update({
   id: '/demo',
   path: '/demo',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const FaqRoute = FaqRouteImport.update({
+  id: '/faq',
+  path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
 const SignupRoute = SignupRouteImport.update({
@@ -67,9 +79,11 @@ const AuthenticatedDashboardRoute = AuthenticatedDashboardRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin-demo': typeof AdminDemoRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
+  '/faq': typeof FaqRoute
   '/signup': typeof SignupRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -77,9 +91,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/admin-demo': typeof AdminDemoRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
+  '/faq': typeof FaqRoute
   '/signup': typeof SignupRoute
   '/admin': typeof AuthenticatedAdminRoute
   '/dashboard': typeof AuthenticatedDashboardRoute
@@ -89,9 +105,11 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteRouteWithChildren
   '/about': typeof AboutRoute
+  '/admin-demo': typeof AdminDemoRoute
   '/auth': typeof AuthRoute
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
+  '/faq': typeof FaqRoute
   '/signup': typeof SignupRoute
   '/_authenticated/admin': typeof AuthenticatedAdminRoute
   '/_authenticated/dashboard': typeof AuthenticatedDashboardRoute
@@ -101,9 +119,11 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/admin-demo'
     | '/auth'
     | '/contact'
     | '/demo'
+    | '/faq'
     | '/signup'
     | '/admin'
     | '/dashboard'
@@ -111,9 +131,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/admin-demo'
     | '/auth'
     | '/contact'
     | '/demo'
+    | '/faq'
     | '/signup'
     | '/admin'
     | '/dashboard'
@@ -122,9 +144,11 @@ export interface FileRouteTypes {
     | '/'
     | '/_authenticated'
     | '/about'
+    | '/admin-demo'
     | '/auth'
     | '/contact'
     | '/demo'
+    | '/faq'
     | '/signup'
     | '/_authenticated/admin'
     | '/_authenticated/dashboard'
@@ -134,9 +158,11 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRouteRoute: typeof AuthenticatedRouteRouteWithChildren
   AboutRoute: typeof AboutRoute
+  AdminDemoRoute: typeof AdminDemoRoute
   AuthRoute: typeof AuthRoute
   ContactRoute: typeof ContactRoute
   DemoRoute: typeof DemoRoute
+  FaqRoute: typeof FaqRoute
   SignupRoute: typeof SignupRoute
 }
 
@@ -163,6 +189,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AboutRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/admin-demo': {
+      id: '/admin-demo'
+      path: '/admin-demo'
+      fullPath: '/admin-demo'
+      preLoaderRoute: typeof AdminDemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/auth': {
       id: '/auth'
       path: '/auth'
@@ -182,6 +215,13 @@ declare module '@tanstack/react-router' {
       path: '/demo'
       fullPath: '/demo'
       preLoaderRoute: typeof DemoRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/faq': {
+      id: '/faq'
+      path: '/faq'
+      fullPath: '/faq'
+      preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/signup': {
@@ -225,9 +265,11 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRouteRoute: AuthenticatedRouteRouteWithChildren,
   AboutRoute: AboutRoute,
+  AdminDemoRoute: AdminDemoRoute,
   AuthRoute: AuthRoute,
   ContactRoute: ContactRoute,
   DemoRoute: DemoRoute,
+  FaqRoute: FaqRoute,
   SignupRoute: SignupRoute,
 }
 export const routeTree = rootRouteImport

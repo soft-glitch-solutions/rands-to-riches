@@ -3,9 +3,11 @@ import { useState } from "react";
 import { LogOut, ShieldCheck, TrendingUp, Eye, Info } from "lucide-react";
 import { BrandMark } from "@/components/site-shell";
 import { InvestmentSlider } from "@/components/investment-slider";
+import { DashboardAnalytics } from "@/components/dashboard-analytics";
 import { Button } from "@/components/ui/button";
 import {
-  INVESTMENT_TERM_DAYS,
+  InvestmentPlan,
+  PLAN_CONFIGS,
   formatDate,
   formatRand,
   formatRandFromCents,
@@ -19,7 +21,7 @@ export const Route = createFileRoute("/demo")({
 });
 
 // ---------------------------------------------------------------------------
-// Mock data — gives visitors a realistic feel for the dashboard
+// Mock data — demonstrates both 1-month and 2-3 month investments
 // ---------------------------------------------------------------------------
 const DEMO_USER = {
   fullName: "Thabo Mokoena",
@@ -27,47 +29,56 @@ const DEMO_USER = {
   memberSince: "2026-08-15",
 };
 
-const DEMO_INVESTMENTS = [
+interface DemoInvestment {
+  id: string;
+  amount_cents: number;
+  term_days: number;
+  expected_return_pct: string;
+  status: "active" | "completed";
+  maturity_action: "withdraw" | "reinvest";
+  created_at: string;
+  matures_at: string;
+}
+
+const INITIAL_DEMO_INVESTMENTS: DemoInvestment[] = [
   {
     id: "inv-1",
-    amount_cents: 50000,
-    status: "active" as const,
-    maturity_action: "reinvest" as const,
-    created_at: "2026-10-03",
-    matures_at: "2026-11-02",
+    amount_cents: 500000, // R5,000
+    term_days: 90,
+    expected_return_pct: "22%–25%",
+    status: "active",
+    maturity_action: "reinvest",
+    created_at: "2026-09-15",
+    matures_at: "2026-12-14",
   },
   {
     id: "inv-2",
-    amount_cents: 25000,
-    status: "active" as const,
-    maturity_action: "withdraw" as const,
+    amount_cents: 50000, // R500
+    term_days: 30,
+    expected_return_pct: "13%–20%",
+    status: "active",
+    maturity_action: "withdraw",
     created_at: "2026-10-15",
     matures_at: "2026-11-14",
   },
   {
     id: "inv-3",
-    amount_cents: 75000,
-    status: "completed" as const,
-    maturity_action: "withdraw" as const,
-    created_at: "2026-09-01",
+    amount_cents: 250000, // R2,500
+    term_days: 60,
+    expected_return_pct: "20%–22%",
+    status: "completed",
+    maturity_action: "withdraw",
+    created_at: "2026-08-01",
     matures_at: "2026-10-01",
   },
 ];
 
-const activeCents = DEMO_INVESTMENTS.filter((i) => i.status === "active").reduce(
-  (s, i) => s + i.amount_cents,
-  0,
-);
-const totalCents = DEMO_INVESTMENTS.reduce((s, i) => s + i.amount_cents, 0);
-const nextMaturity = DEMO_INVESTMENTS.filter((i) => i.status === "active")
-  .map((i) => i.matures_at)
-  .sort()[0];
-
 function DemoDashboard() {
-  const [investments, setInvestments] = useState(DEMO_INVESTMENTS);
+  const [investments, setInvestments] = useState<DemoInvestment[]>(INITIAL_DEMO_INVESTMENTS);
   const [pendingAmount, setPendingAmount] = useState(500);
+  const [pendingPlan, setPendingPlan] = useState<InvestmentPlan>("1month");
   const [newAction, setNewAction] = useState<"withdraw" | "reinvest">("withdraw");
-  const [showSuccess, setShowSuccess] = useState(false);
+  const [successInfo, setSuccessInfo] = useState<string | null>(null);
 
   const toggleAction = (id: string, action: "withdraw" | "reinvest") => {
     setInvestments((prev) =>
@@ -75,10 +86,39 @@ function DemoDashboard() {
     );
   };
 
+  const activePlanConfig = PLAN_CONFIGS[pendingPlan];
+
   const fakeInvest = () => {
-    setShowSuccess(true);
-    setTimeout(() => setShowSuccess(false), 3000);
+    const today = new Date();
+    const maturityDate = new Date();
+    maturityDate.setDate(today.getDate() + activePlanConfig.termDays);
+
+    const newInv: DemoInvestment = {
+      id: `inv-${Date.now()}`,
+      amount_cents: pendingAmount * 100,
+      term_days: activePlanConfig.termDays,
+      expected_return_pct: `${(activePlanConfig.minPct * 100).toFixed(0)}%–${(activePlanConfig.maxPct * 100).toFixed(0)}%`,
+      status: "active",
+      maturity_action: newAction,
+      created_at: today.toISOString().split("T")[0]!,
+      matures_at: maturityDate.toISOString().split("T")[0]!,
+    };
+
+    setInvestments((prev) => [newInv, ...prev]);
+    setSuccessInfo(
+      `Demo investment of ${formatRand(pendingAmount)} started on ${activePlanConfig.termLabel}! (no real money moved)`,
+    );
+    setTimeout(() => setSuccessInfo(null), 4000);
   };
+
+  const activeCents = investments
+    .filter((i) => i.status === "active")
+    .reduce((s, i) => s + i.amount_cents, 0);
+  const totalCents = investments.reduce((s, i) => s + i.amount_cents, 0);
+  const nextMaturity = investments
+    .filter((i) => i.status === "active")
+    .map((i) => i.matures_at)
+    .sort()[0];
 
   return (
     <div className="min-h-screen bg-background">
@@ -87,7 +127,7 @@ function DemoDashboard() {
         <Eye className="mr-1.5 inline-block size-4 align-text-bottom" />
         You're viewing a <strong>demo account</strong> — data is illustrative only.{" "}
         <Link to="/auth" className="ml-3 underline underline-offset-2 hover:no-underline">
-          Sign in with a real account →
+          Sign in with a real account &rarr;
         </Link>
       </div>
 
@@ -97,8 +137,8 @@ function DemoDashboard() {
           <BrandMark />
           <div className="flex items-center gap-2">
             <Button asChild variant="ghost" size="sm">
-              <Link to="/admin" className="text-primary">
-                <ShieldCheck className="mr-2 size-4" /> Admin (demo)
+              <Link to="/admin-demo" className="text-primary font-bold">
+                <ShieldCheck className="mr-1.5 size-4" /> Admin Demo (Payments)
               </Link>
             </Button>
             <Button asChild variant="outline" size="sm">
@@ -123,8 +163,7 @@ function DemoDashboard() {
         <div className="mt-4 flex items-start gap-3 rounded-2xl border border-primary/20 bg-primary/5 px-4 py-3">
           <Info className="mt-0.5 size-4 shrink-0 text-primary" />
           <p className="text-xs leading-relaxed text-muted-foreground">
-            This is a <strong>demo view</strong> with illustrative data. No real money is involved.
-            All investment amounts, returns and dates shown are examples only.
+            This is an interactive <strong>demo view</strong> showcasing both our <strong>1-month cycle (13%–20%)</strong> and <strong>2–3 month growth fleet (20%–25%)</strong>.
           </p>
         </div>
 
@@ -156,18 +195,25 @@ function DemoDashboard() {
           </div>
         </div>
 
+        {/* Business Performance & Analytics Graphs */}
+        <DashboardAnalytics className="mt-8" />
+
         {/* Start a new investment */}
         <section className="mt-8 rounded-3xl border border-border bg-card p-6 shadow-lg shadow-primary/5 sm:p-8">
           <h2 className="font-display text-xl font-bold text-foreground">
             Start another investment cycle
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Choose an amount and how you'd like it handled after the{" "}
-            {INVESTMENT_TERM_DAYS}-day cycle.
+            Switch plans below to compare 1-month returns (13%–20%) and 2–3 month returns (20%–25%).
           </p>
 
           <div className="mt-6">
-            <InvestmentSlider value={pendingAmount} onChange={setPendingAmount} />
+            <InvestmentSlider
+              value={pendingAmount}
+              onChange={setPendingAmount}
+              plan={pendingPlan}
+              onPlanChange={setPendingPlan}
+            />
           </div>
 
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
@@ -176,12 +222,12 @@ function DemoDashboard() {
                 {
                   value: "withdraw" as const,
                   title: "Withdraw at maturity",
-                  body: `Get your capital back at the end of the ${INVESTMENT_TERM_DAYS} days.`,
+                  body: `Receive principal plus returns at the end of the ${activePlanConfig.termDays} days.`,
                 },
                 {
                   value: "reinvest" as const,
                   title: "Reinvest automatically",
-                  body: "Roll into the next cycle to keep it growing.",
+                  body: "Roll capital into the next cycle to continue compounding.",
                 },
               ]
             ).map((option) => (
@@ -201,10 +247,10 @@ function DemoDashboard() {
             ))}
           </div>
 
-          {showSuccess && (
+          {successInfo && (
             <div className="mt-4 flex items-center gap-2 rounded-xl bg-accent px-4 py-3 text-sm font-semibold text-accent-foreground">
-              <TrendingUp className="size-4" />
-              Demo investment of {formatRand(pendingAmount)} started! (no real money moved)
+              <TrendingUp className="size-4 shrink-0" />
+              {successInfo}
             </div>
           )}
 
@@ -213,7 +259,7 @@ function DemoDashboard() {
             onClick={fakeInvest}
             className="mt-6 w-full rounded-2xl text-base font-bold sm:w-auto"
           >
-            Invest {formatRand(pendingAmount)} (demo)
+            Invest {formatRand(pendingAmount)} ({activePlanConfig.termDays} days demo)
           </Button>
         </section>
 
@@ -229,18 +275,23 @@ function DemoDashboard() {
                 className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
               >
                 <div>
-                  <p className="font-display text-xl font-bold text-foreground">
-                    {formatRandFromCents(inv.amount_cents)}
+                  <div className="flex flex-wrap items-center gap-2">
+                    <p className="font-display text-xl font-bold text-foreground">
+                      {formatRandFromCents(inv.amount_cents)}
+                    </p>
                     <span
                       className={
                         inv.status === "active"
-                          ? "ml-3 inline-block rounded-full bg-accent px-2.5 py-0.5 align-middle text-xs font-bold text-accent-foreground"
-                          : "ml-3 inline-block rounded-full bg-secondary px-2.5 py-0.5 align-middle text-xs font-bold text-secondary-foreground"
+                          ? "rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground"
+                          : "rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-secondary-foreground"
                       }
                     >
                       {inv.status === "active" ? "Active" : "Completed"}
                     </span>
-                  </p>
+                    <span className="rounded-full border border-border bg-secondary/50 px-2.5 py-0.5 text-xs font-medium text-foreground">
+                      {inv.term_days} days ({inv.expected_return_pct})
+                    </span>
+                  </div>
                   <p className="mt-1 text-xs text-muted-foreground">
                     Started {formatDate(inv.created_at)} · matures{" "}
                     {formatDate(inv.matures_at)}

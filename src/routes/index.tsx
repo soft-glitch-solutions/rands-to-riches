@@ -40,11 +40,11 @@ const PILLARS = [
 ];
 
 const STEPS = [
-  "Investors contribute capital, from R100 to R1,000 per cycle.",
+  "Investors contribute capital, from R100 up to R10,000 depending on their cycle.",
   "Pooled funds are deployed into commercial vehicles and motorcycles.",
   "Vehicles enter commercial operations with drivers and delivery riders.",
-  "The vehicle business generates revenue through commercial use.",
-  `At the end of the ${INVESTMENT_TERM_DAYS}-day cycle, investors withdraw or reinvest.`,
+  "The vehicle business generates revenue through commercial operations.",
+  "At maturity (30, 60 or 90 days), investors withdraw capital and returns or reinvest.",
 ];
 
 function Index() {
@@ -70,7 +70,7 @@ function Index() {
             <p className="mt-4 max-w-xl text-lg text-muted-foreground">
               Invest in the growing e-hailing and delivery economy. Help power
               the vehicles that keep people and businesses moving — starting
-              from just R100.
+              from just R100 with returns up to 25%.
             </p>
             <div className="mt-8 grid max-w-md grid-cols-3 gap-4 text-center">
               <div className="rounded-2xl bg-secondary px-2 py-4">
@@ -83,18 +83,18 @@ function Index() {
               </div>
               <div className="rounded-2xl bg-secondary px-2 py-4">
                 <p className="font-display text-xl font-bold text-primary sm:text-2xl">
-                  {INVESTMENT_TERM_DAYS} days
+                  30 – 90 days
                 </p>
                 <p className="mt-1 text-xs font-medium text-secondary-foreground sm:text-sm">
-                  Investment cycle
+                  Flexible cycles
                 </p>
               </div>
               <div className="rounded-2xl bg-secondary px-2 py-4">
-                <p className="font-display text-xl font-bold text-primary sm:text-2xl">
-                  Flexible
+                <p className="font-display text-xl font-bold text-brand-green sm:text-2xl">
+                  13% – 25%
                 </p>
                 <p className="mt-1 text-xs font-medium text-secondary-foreground sm:text-sm">
-                  Reinvestment choice
+                  Target returns
                 </p>
               </div>
             </div>
@@ -213,9 +213,9 @@ function Index() {
             Your money in motion
           </h2>
           <p className="mx-auto mt-3 max-w-xl text-sm text-primary-foreground/80 sm:text-base">
-            Start with an investment cycle of {INVESTMENT_TERM_DAYS} days.
-            Withdraw your capital and any returns payable at maturity, or keep
-            it invested in subsequent cycles.
+            Choose a 1-month plan for 13%–20% returns, or a 2 to 3-month growth
+            plan for 20%–25%. Withdraw your capital and returns at maturity,
+            or reinvest into future cycles.
           </p>
           <Button
             size="lg"

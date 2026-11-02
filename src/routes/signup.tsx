@@ -21,12 +21,12 @@ export const Route = createFileRoute("/signup")({
       {
         name: "description",
         content:
-          "Sign up and start your MOTUS Capital investment from R100 in a 30-day mobility investment cycle.",
+          "Sign up and start your MOTUS Capital investment from R100 with returns up to 25%.",
       },
       { property: "og:title", content: "Create your account — MOTUS Capital" },
       {
         property: "og:description",
-        content: "Start investing in the mobility economy from R100.",
+        content: "Start investing in the mobility economy from R100 with returns up to 25%.",
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

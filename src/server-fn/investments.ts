@@ -33,16 +33,26 @@ export const getMyInvestments = createServerFn({ method: "GET" })
     };
   });
 
-/** Start a new investment cycle with the chosen amount. */
+/** Start a new investment cycle with the chosen amount and term. */
 export const createInvestment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .inputValidator(
-    (input: { amountRands: number; maturityAction: MaturityAction }) => input,
+    (input: {
+      amountRands: number;
+      maturityAction: MaturityAction;
+      termDays?: number;
+    }) => input,
   )
   .handler(async ({ data, context }) => {
     const amountRands = clampInvestment(Number(data.amountRands));
     const action =
       data.maturityAction === "reinvest" ? "reinvest" : "withdraw";
+    const termDays =
+      data.termDays && [30, 60, 90].includes(data.termDays)
+        ? data.termDays
+        : amountRands > 1000
+          ? 90
+          : 30;
 
     const { data: row, error } = await context.supabase
       .from("investments")
@@ -50,6 +60,7 @@ export const createInvestment = createServerFn({ method: "POST" })
         user_id: context.userId,
         amount_cents: Math.round(amountRands * 100),
         maturity_action: action,
+        term_days: termDays,
       })
       .select("*")
       .single();

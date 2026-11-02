@@ -148,12 +148,17 @@ function AuthPage() {
         </Button>
       </div>
 
-      {/* Demo preview button */}
-      <div className="mt-4">
-        <Button asChild variant="ghost" className="w-full rounded-2xl text-muted-foreground">
+      {/* Demo preview buttons */}
+      <div className="mt-4 space-y-2">
+        <Button asChild variant="ghost" className="w-full rounded-2xl text-muted-foreground hover:text-foreground">
           <Link to="/demo">
             <Eye className="mr-2 size-4" />
-            Preview demo dashboard (no account needed)
+            Preview investor demo (no account needed)
+          </Link>
+        </Button>
+        <Button asChild variant="outline" className="w-full rounded-2xl text-xs font-semibold text-primary border-primary/20 hover:bg-primary/5">
+          <Link to="/admin-demo">
+            View admin payment processing demo &rarr;
           </Link>
         </Button>
       </div>

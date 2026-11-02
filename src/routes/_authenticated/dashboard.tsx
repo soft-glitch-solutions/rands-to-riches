@@ -13,9 +13,11 @@ import {
 } from "@/server-fn/investments";
 import { BrandMark } from "@/components/site-shell";
 import { InvestmentSlider } from "@/components/investment-slider";
+import { DashboardAnalytics } from "@/components/dashboard-analytics";
 import { Button } from "@/components/ui/button";
 import {
-  INVESTMENT_TERM_DAYS,
+  InvestmentPlan,
+  PLAN_CONFIGS,
   clampInvestment,
   formatDate,
   formatRand,
@@ -45,8 +47,10 @@ function DashboardPage() {
   const checkAdmin = useServerFn(isUserAdmin);
 
   const { amount: searchAmount } = Route.useSearch();
-  const [pendingAmount, setPendingAmount] = useState<number>(
-    searchAmount ?? takePendingAmount() ?? 500,
+  const initialAmount = searchAmount ?? takePendingAmount() ?? 500;
+  const [pendingAmount, setPendingAmount] = useState<number>(initialAmount);
+  const [pendingPlan, setPendingPlan] = useState<InvestmentPlan>(
+    initialAmount > 1000 ? "3months" : "1month",
   );
   const [newAction, setNewAction] = useState<MaturityAction>("withdraw");
   const [busy, setBusy] = useState(false);
@@ -62,12 +66,18 @@ function DashboardPage() {
     queryFn: checkAdmin,
   });
 
+  const activePlanConfig = PLAN_CONFIGS[pendingPlan];
+
   const investNow = async () => {
     setBusy(true);
     setError(null);
     try {
       await startInvestment({
-        data: { amountRands: pendingAmount, maturityAction: newAction },
+        data: {
+          amountRands: pendingAmount,
+          maturityAction: newAction,
+          termDays: activePlanConfig.termDays,
+        },
       });
       await queryClient.invalidateQueries({ queryKey: ["my-investments"] });
     } catch (err) {
@@ -166,6 +176,9 @@ function DashboardPage() {
           </div>
         </div>
 
+        {/* Business Performance & Returns Analytics */}
+        <DashboardAnalytics className="mt-8" />
+
         {/* Start a new investment */}
         <section className="mt-8 rounded-3xl border border-border bg-card p-6 shadow-lg shadow-primary/5 sm:p-8">
           <h2 className="font-display text-xl font-bold text-foreground">
@@ -174,13 +187,17 @@ function DashboardPage() {
               : "Start another investment cycle"}
           </h2>
           <p className="mt-1 text-sm text-muted-foreground">
-            Choose an amount and how you'd like it handled after the{" "}
-            {INVESTMENT_TERM_DAYS}-day cycle.
+            Choose your plan (1 Month at 13%–20% or 2–3 Months at 20%–25%) and maturity action.
           </p>
 
-          {/* Investment slider */}
+          {/* Investment slider with plan selector */}
           <div className="mt-6">
-            <InvestmentSlider value={pendingAmount} onChange={setPendingAmount} />
+            <InvestmentSlider
+              value={pendingAmount}
+              onChange={setPendingAmount}
+              plan={pendingPlan}
+              onPlanChange={setPendingPlan}
+            />
           </div>
 
           <div className="mt-6 grid gap-2 sm:grid-cols-2">
@@ -189,12 +206,12 @@ function DashboardPage() {
                 {
                   value: "withdraw",
                   title: "Withdraw at maturity",
-                  body: `Get your capital back at the end of the ${INVESTMENT_TERM_DAYS} days.`,
+                  body: `Get your capital back with returns at the end of the ${activePlanConfig.termDays} days.`,
                 },
                 {
                   value: "reinvest",
                   title: "Reinvest automatically",
-                  body: "Roll into the next cycle to keep it growing.",
+                  body: "Roll capital into the next cycle to continue earning.",
                 },
               ] as const
             ).map((option) => (
@@ -235,7 +252,7 @@ function DashboardPage() {
                 <Loader2 className="mr-2 size-4 animate-spin" /> Starting…
               </>
             ) : (
-              `Invest ${formatRand(pendingAmount)}`
+              `Invest ${formatRand(pendingAmount)} (${activePlanConfig.termDays} days)`
             )}
           </Button>
         </section>
@@ -262,18 +279,25 @@ function DashboardPage() {
                   className="flex flex-col gap-3 rounded-2xl border border-border bg-card p-5 sm:flex-row sm:items-center sm:justify-between"
                 >
                   <div>
-                    <p className="font-display text-xl font-bold text-foreground">
-                      {formatRandFromCents(inv.amount_cents)}
+                    <div className="flex items-center gap-2">
+                      <p className="font-display text-xl font-bold text-foreground">
+                        {formatRandFromCents(inv.amount_cents)}
+                      </p>
                       <span
                         className={
                           inv.status === "active"
-                            ? "ml-3 inline-block rounded-full bg-accent px-2.5 py-0.5 align-middle text-xs font-bold text-accent-foreground"
-                            : "ml-3 inline-block rounded-full bg-secondary px-2.5 py-0.5 align-middle text-xs font-bold text-secondary-foreground"
+                            ? "rounded-full bg-accent px-2.5 py-0.5 text-xs font-bold text-accent-foreground"
+                            : "rounded-full bg-secondary px-2.5 py-0.5 text-xs font-bold text-secondary-foreground"
                         }
                       >
                         {inv.status === "active" ? "Active" : "Completed"}
                       </span>
-                    </p>
+                      {inv.term_days && (
+                        <span className="rounded-full border border-border bg-card px-2.5 py-0.5 text-xs font-medium text-muted-foreground">
+                          {inv.term_days} days
+                        </span>
+                      )}
+                    </div>
                     <p className="mt-1 text-xs text-muted-foreground">
                       Started {formatDate(inv.created_at)} · matures{" "}
                       {formatDate(inv.matures_at)}
