@@ -10,7 +10,7 @@ import {
   isUserAdmin,
   setMaturityAction,
   type MaturityAction,
-} from "@/server/investments";
+} from "@/server-fn/investments";
 import { BrandMark } from "@/components/site-shell";
 import { InvestmentSlider } from "@/components/investment-slider";
 import { Button } from "@/components/ui/button";

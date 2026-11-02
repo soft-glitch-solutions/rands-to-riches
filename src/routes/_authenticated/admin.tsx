@@ -2,8 +2,8 @@ import { createFileRoute, Link, redirect } from "@tanstack/react-router";
 import { useQuery } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
 import { Loader2, ShieldCheck } from "lucide-react";
-import { getAdminOverview } from "@/server/admin";
-import { isUserAdmin } from "@/server/investments";
+import { getAdminOverview } from "@/server-fn/admin";
+import { isUserAdmin } from "@/server-fn/investments";
 import { BrandMark } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import {

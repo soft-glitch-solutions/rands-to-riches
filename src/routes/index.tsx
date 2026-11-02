@@ -106,23 +106,25 @@ function Index() {
               alt="E-hailing car and delivery rider on a city street"
               className="aspect-[16/9] w-full rounded-3xl object-cover shadow-lg shadow-primary/10"
             />
-            <div className="rounded-3xl border border-border bg-card p-6 shadow-lg shadow-primary/5 sm:p-8">
-              <h2 className="font-display text-xl font-bold text-foreground">
-                Start your investment
-              </h2>
-              <p className="mt-1 text-sm text-muted-foreground">
-                Choose how much you would like to invest.
-              </p>
+            <div className="rounded-3xl border border-border bg-card p-5 shadow-lg shadow-primary/5 sm:p-7">
+              <div className="mb-4">
+                <h2 className="font-display text-xl font-bold text-foreground">
+                  Calculate your investment
+                </h2>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  Choose how much you would like to put in motion.
+                </p>
+              </div>
               <InvestmentSlider value={amount} onChange={setAmount} />
               <Button
                 size="lg"
                 onClick={startInvestment}
-                className="mt-6 w-full rounded-2xl text-base font-bold"
+                className="mt-6 w-full rounded-2xl text-base font-bold shadow-md shadow-primary/20"
               >
-                Invest {formatRand(amount)}
+                Start with {formatRand(amount)}
               </Button>
-              <p className="mt-3 text-center text-xs text-muted-foreground">
-                You'll create an account to continue with this amount.
+              <p className="mt-2.5 text-center text-xs text-muted-foreground">
+                30-day cycle · Withdraw or reinvest at maturity
               </p>
             </div>
           </div>

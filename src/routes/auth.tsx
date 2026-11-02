@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -6,7 +6,7 @@ import { Label } from "@/components/ui/label";
 import { clampInvestment, formatRand } from "@/lib/investment";
 import { savePendingAmount, signInWithGoogle, signInWithLovable } from "@/lib/social-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2 } from "lucide-react";
+import { Loader2, Eye } from "lucide-react";
 import { AuthShell } from "@/routes/signup";
 
 export const Route = createFileRoute("/auth")({
@@ -41,8 +41,6 @@ export const Route = createFileRoute("/auth")({
   },
   component: AuthPage,
 });
-
-import { redirect } from "@tanstack/react-router";
 
 function AuthPage() {
   const navigate = useNavigate();
@@ -130,12 +128,33 @@ function AuthPage() {
         <span className="text-xs font-medium text-muted-foreground">or</span>
         <span className="h-px flex-1 bg-border" />
       </div>
+
       <div className="mt-4 grid gap-2 sm:grid-cols-2">
-        <Button variant="outline" disabled={socialBusy} onClick={() => social("google")} className="rounded-2xl">
+        <Button
+          variant="outline"
+          disabled={socialBusy}
+          onClick={() => social("google")}
+          className="rounded-2xl"
+        >
           Continue with Google
         </Button>
-        <Button variant="outline" disabled={socialBusy} onClick={() => social("lovable")} className="rounded-2xl">
+        <Button
+          variant="outline"
+          disabled={socialBusy}
+          onClick={() => social("lovable")}
+          className="rounded-2xl"
+        >
           Continue with Lovable
+        </Button>
+      </div>
+
+      {/* Demo preview button */}
+      <div className="mt-4">
+        <Button asChild variant="ghost" className="w-full rounded-2xl text-muted-foreground">
+          <Link to="/demo">
+            <Eye className="mr-2 size-4" />
+            Preview demo dashboard (no account needed)
+          </Link>
         </Button>
       </div>
 
