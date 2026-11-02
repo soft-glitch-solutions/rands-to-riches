@@ -10,10 +10,10 @@ import { Loader2 } from "lucide-react";
 import { AuthShell } from "@/routes/signup";
 
 export const Route = createFileRoute("/auth")({
-  validateSearch: (search: Record<string, unknown>) => {
+  validateSearch: (search: Record<string, unknown>): { amount?: number } => {
     const raw = Number(search["amount"]);
     return {
-      amount: search["amount"] !== undefined ? clampInvestment(raw) : null,
+      amount: search["amount"] !== undefined ? clampInvestment(raw) : undefined,
     };
   },
   head: () => ({
@@ -66,16 +66,16 @@ function AuthPage() {
       setError(signInError.message);
       return;
     }
-    if (amount !== null) savePendingAmount(amount);
-    navigate({ to: "/dashboard", ...(amount !== null ? { search: { amount } } : {}) });
+    if (amount !== undefined) savePendingAmount(amount);
+    navigate({ to: "/dashboard", ...(amount !== undefined ? { search: { amount } } : {}) });
   };
 
   const social = async (kind: "google" | "lovable") => {
     setSocialBusy(true);
     const err =
       kind === "google"
-        ? await signInWithGoogle(amount ?? undefined)
-        : await signInWithLovable(amount ?? undefined);
+        ? await signInWithGoogle(amount)
+        : await signInWithLovable(amount);
     setSocialBusy(false);
     if (err) setError(err);
   };
@@ -143,7 +143,7 @@ function AuthPage() {
         New to MOTUS Capital?{" "}
         <Link
           to="/signup"
-          search={amount !== null ? { amount } : undefined}
+          search={amount !== undefined ? { amount } : undefined}
           className="font-semibold text-primary hover:underline"
         >
           Create an account
