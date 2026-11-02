@@ -9,6 +9,7 @@ import {
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
+import logo from "@/assets/logo.jpg";
 
 const NAV_LINKS = [
   { to: "/", label: "Home" },
@@ -73,13 +74,27 @@ function AuthArea() {
 
 export function BrandMark() {
   return (
-    <Link to="/" className="flex items-center gap-2">
-      <span className="flex size-9 items-center justify-center rounded-xl bg-primary font-display text-lg font-bold text-primary-foreground">
-        M
-      </span>
-      <span className="font-display text-sm font-bold uppercase tracking-wide text-foreground sm:text-base">
-        Motus Capital
-      </span>
+    <Link 
+      to="/" 
+      className="flex items-center gap-2.5 sm:gap-3 transition-opacity hover:opacity-90" 
+      aria-label="Motus Capital home"
+    >
+      {/* The Logo Image - kept small and clean, no border/circle */}
+      <img
+        src={logo}
+        alt="Motus Capital M" 
+        className="h-9 w-auto object-contain sm:h-10"
+      />
+      
+      {/* The Text - recreated with exact colors from the image */}
+      <div className="flex flex-col justify-center">
+        <span className="font-display text-sm font-bold uppercase tracking-wide text-[#0f2d59] sm:text-base">
+          Motus Capital
+        </span>
+        <span className="text-[10px] font-semibold text-[#1b6fbc] sm:text-xs">
+          Money In Motion
+        </span>
+      </div>
     </Link>
   );
 }
