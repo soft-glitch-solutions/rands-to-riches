@@ -44,6 +44,10 @@
   --font-display: "Sora", "Manrope", ui-sans-serif, sans-serif;
 }
 
+@keyframes shimmer {
+  100% { transform: translateX(100%); }
+}
+
 :root {
   --radius: 0.75rem;
   --background: oklch(0.995 0.003 250);
