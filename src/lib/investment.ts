@@ -110,3 +110,36 @@ export function formatDate(date: string | Date): string {
     year: "numeric",
   });
 }
+
+/** Lifecycle of an investment cycle on the platform. */
+export type InvestmentState =
+  | "pending"
+  | "active"
+  | "matured"
+  | "withdrawn"
+  | "rejected";
+
+/** Unambiguous characters for payment references (no I, L, O, 0 or 1). */
+const REF_ALPHABET = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+/** Generate a unique payment reference like "MTC-7K3P9Q" for one investment. */
+export function generatePaymentReference(): string {
+  const bytes = new Uint8Array(6);
+  crypto.getRandomValues(bytes);
+  return `MTC-${Array.from(bytes, (b) => REF_ALPHABET[b % REF_ALPHABET.length]).join("")}`;
+}
+
+/**
+ * Resolve how an investment should display. Pending and rejected cycles never
+ * mature by date — a cycle only starts maturing once an admin approves payment.
+ */
+export function getInvestmentState(
+  inv: { status: string; matures_at: string },
+  withdrawn = false,
+): InvestmentState {
+  if (withdrawn || inv.status === "withdrawn") return "withdrawn";
+  if (inv.status === "pending") return "pending";
+  if (inv.status === "rejected") return "rejected";
+  if (inv.status === "matured") return "matured";
+  return new Date(inv.matures_at).getTime() <= Date.now() ? "matured" : "active";
+}
