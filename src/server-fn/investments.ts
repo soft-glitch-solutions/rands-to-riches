@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
-import { clampInvestment } from "@/lib/investment";
+import { clampInvestment, generatePaymentReference } from "@/lib/investment";
 
 export type MaturityAction = "withdraw" | "reinvest";
 
@@ -70,6 +70,9 @@ export const createInvestment = createServerFn({ method: "POST" })
         amount_cents: Math.round(amountRands * 100),
         maturity_action: action,
         term_days: termDays,
+        // New cycles wait for the investor's EFT payment; an admin approves it.
+        status: "pending",
+        payment_reference: generatePaymentReference(),
       })
       .select("*")
       .single();
