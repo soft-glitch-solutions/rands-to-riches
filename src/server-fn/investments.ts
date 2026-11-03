@@ -17,7 +17,9 @@ export const getMyInvestments = createServerFn({ method: "GET" })
         .order("created_at", { ascending: false }),
       supabase
         .from("profiles")
-        .select("full_name, phone, created_at")
+        .select(
+          "full_name, phone, created_at, avatar_url, bank_name, bank_account_holder, bank_account_number, bank_branch_code, bank_account_type",
+        )
         .eq("id", userId)
         .maybeSingle(),
     ]);
@@ -25,10 +27,17 @@ export const getMyInvestments = createServerFn({ method: "GET" })
     if (investments.error) throw new Error(investments.error.message);
 
     return {
+      userId,
       email: (claims as { email?: string } | null)?.email ?? null,
       fullName: profile.data?.full_name ?? null,
       phone: profile.data?.phone ?? null,
       memberSince: profile.data?.created_at ?? null,
+      avatarUrl: profile.data?.avatar_url ?? null,
+      bankName: profile.data?.bank_name ?? null,
+      bankAccountHolder: profile.data?.bank_account_holder ?? null,
+      bankAccountNumber: profile.data?.bank_account_number ?? null,
+      bankBranchCode: profile.data?.bank_branch_code ?? null,
+      bankAccountType: profile.data?.bank_account_type ?? null,
       investments: investments.data,
     };
   });
