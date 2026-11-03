@@ -1,0 +1,72 @@
+name: Deploy to GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: true
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Type check
+        run: npx tsc --noEmit
+
+      - name: Test
+        run: npx vitest run
+
+      - name: Build (static / SPA output)
+        env:
+          # Repo secrets/variables: Settings > Secrets and variables > Actions
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_PUBLISHABLE_KEY: ${{ secrets.VITE_SUPABASE_PUBLISHABLE_KEY }}
+          VITE_PAYOUT_BANK: ${{ vars.VITE_PAYOUT_BANK }}
+          VITE_PAYOUT_ACCOUNT_NAME: ${{ vars.VITE_PAYOUT_ACCOUNT_NAME }}
+          VITE_PAYOUT_ACCOUNT_NUMBER: ${{ vars.VITE_PAYOUT_ACCOUNT_NUMBER }}
+          VITE_PAYOUT_BRANCH_CODE: ${{ vars.VITE_PAYOUT_BRANCH_CODE }}
+          VITE_PAYOUT_ACCOUNT_TYPE: ${{ vars.VITE_PAYOUT_ACCOUNT_TYPE }}
+          GITHUB_PAGES: "true"
+        run: npm run build
+
+      - name: Locate build output and add SPA fallback
+        run: |
+          OUT=dist/client
+          [ -d "$OUT" ] || OUT=dist
+          test -f "$OUT/index.html" || test -f "$OUT/_shell.html" || { echo "No static index.html found in $OUT - see README-DEPLOY.md"; exit 1; }
+          [ -f "$OUT/index.html" ] || cp "$OUT/_shell.html" "$OUT/index.html"
+          cp "$OUT/index.html" "$OUT/404.html"
+          touch "$OUT/.nojekyll"
+          echo "OUT=$OUT" >> "$GITHUB_ENV"
+
+      - uses: actions/configure-pages@v5
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ${{ env.OUT }}
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

@@ -13,13 +13,14 @@ export function FadeIn({
   direction = "up",
   delay = 0,
   className = "",
-  as: Component = "div",
+  as = "div",
 }: FadeInProps) {
   const ref = useRef<HTMLElement | null>(null);
   const [isVisible, setIsVisible] = useState(false);
+  // Dynamic tag: widen the type once instead of suppressing errors.
+  const Tag = as as React.ElementType;
 
   useEffect(() => {
-    // If IntersectionObserver is not available, immediately reveal
     if (typeof window === "undefined" || !("IntersectionObserver" in window)) {
       setIsVisible(true);
       return;
@@ -37,17 +38,11 @@ export function FadeIn({
           }
         });
       },
-      {
-        threshold: 0.1,
-        rootMargin: "0px 0px -40px 0px",
-      }
+      { threshold: 0.1, rootMargin: "0px 0px -40px 0px" },
     );
 
     observer.observe(element);
-
-    return () => {
-      observer.disconnect();
-    };
+    return () => observer.disconnect();
   }, []);
 
   const getAnimationClass = () => {
@@ -67,14 +62,9 @@ export function FadeIn({
 
   const delayStyle = delay > 0 ? { animationDelay: `${delay}ms` } : undefined;
 
-  // @ts-expect-error Component tag dynamic rendering
   return (
-    <Component
-      ref={ref}
-      style={delayStyle}
-      className={`${getAnimationClass()} ${className}`}
-    >
+    <Tag ref={ref} style={delayStyle} className={`${getAnimationClass()} ${className}`}>
       {children}
-    </Component>
+    </Tag>
   );
 }
