@@ -1,6 +1,14 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import type { Database } from "@/integrations/supabase/types";
 import type { PayoutAccount } from "@/lib/payment-details";
+
+/** Context shape that requireSupabaseAuth hands to every handler. */
+interface AuthedContext {
+  supabase: SupabaseClient<Database>;
+  userId: string;
+}
 
 /* ============================================================
    TYPES
@@ -101,10 +109,7 @@ export interface AdminInvestorDetail {
 ============================================================ */
 
 /** Every admin action verifies the caller's admin role before anything else. */
-async function requireAdmin(context: {
-  supabase: Awaited<ReturnType<typeof getSupabaseFromContext>>;
-  userId: string;
-}) {
+async function requireAdmin(context: AuthedContext) {
   const { data: isAdmin, error } = await context.supabase.rpc("has_role", {
     _user_id: context.userId,
     _role: "admin",
@@ -115,9 +120,6 @@ async function requireAdmin(context: {
   );
   return supabaseAdmin;
 }
-
-// Helper only used in the type above.
-declare function getSupabaseFromContext(): Promise<unknown>;
 
 /** Estimate profit on a single cycle — matches the client-side display. */
 function profitRate(termDays: number): number {
