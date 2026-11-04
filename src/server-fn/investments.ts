@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { clampInvestment, generatePaymentReference } from "@/lib/investment";
+import type { PayoutAccount } from "@/lib/payment-details";
 
 export type MaturityAction = "withdraw" | "reinvest";
 
@@ -10,7 +11,7 @@ export const getMyInvestments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId, claims } = context;
 
-    const [investments, profile] = await Promise.all([
+    const [investments, profile, payoutRow] = await Promise.all([
       supabase
         .from("investments")
         .select("*")
@@ -22,9 +23,26 @@ export const getMyInvestments = createServerFn({ method: "GET" })
         )
         .eq("id", userId)
         .maybeSingle(),
+      supabase
+        .from("payout_settings")
+        .select(
+          "bank, account_name, account_number, branch_code, account_type",
+        )
+        .eq("id", 1)
+        .maybeSingle(),
     ]);
 
     if (investments.error) throw new Error(investments.error.message);
+
+    const payout: PayoutAccount | null = payoutRow.data
+      ? {
+          bank: payoutRow.data.bank,
+          accountName: payoutRow.data.account_name,
+          accountNumber: payoutRow.data.account_number,
+          branchCode: payoutRow.data.branch_code,
+          accountType: payoutRow.data.account_type,
+        }
+      : null;
 
     return {
       userId,
