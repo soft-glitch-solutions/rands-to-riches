@@ -24,6 +24,7 @@ export type Database = {
           payment_reference: string | null
           status: string
           term_days: number
+          updated_at: string
           user_id: string
         }
         Insert: {
@@ -35,6 +36,7 @@ export type Database = {
           payment_reference?: string | null
           status?: string
           term_days?: number
+          updated_at?: string
           user_id: string
         }
         Update: {
@@ -46,6 +48,7 @@ export type Database = {
           payment_reference?: string | null
           status?: string
           term_days?: number
+          updated_at?: string
           user_id?: string
         }
         Relationships: [
@@ -57,6 +60,36 @@ export type Database = {
             referencedColumns: ["id"]
           },
         ]
+      }
+      payout_settings: {
+        Row: {
+          account_name: string
+          account_number: string
+          account_type: string
+          bank: string
+          branch_code: string
+          id: number
+          updated_at: string
+        }
+        Insert: {
+          account_name?: string
+          account_number?: string
+          account_type?: string
+          bank?: string
+          branch_code?: string
+          id?: number
+          updated_at?: string
+        }
+        Update: {
+          account_name?: string
+          account_number?: string
+          account_type?: string
+          bank?: string
+          branch_code?: string
+          id?: number
+          updated_at?: string
+        }
+        Relationships: []
       }
       profiles: {
         Row: {
