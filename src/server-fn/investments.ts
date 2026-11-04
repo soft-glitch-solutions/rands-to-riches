@@ -56,6 +56,7 @@ export const getMyInvestments = createServerFn({ method: "GET" })
       bankAccountNumber: profile.data?.bank_account_number ?? null,
       bankBranchCode: profile.data?.bank_branch_code ?? null,
       bankAccountType: profile.data?.bank_account_type ?? null,
+      payout,
       investments: investments.data,
     };
   });

@@ -5,7 +5,7 @@ interface FadeInProps {
   direction?: "up" | "down" | "fade" | "scale";
   delay?: number;
   className?: string;
-  as?: keyof JSX.IntrinsicElements;
+  as?: keyof React.JSX.IntrinsicElements;
 }
 
 export function FadeIn({
