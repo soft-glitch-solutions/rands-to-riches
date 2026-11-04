@@ -248,6 +248,7 @@ function DashboardPage() {
           <PaymentInstructions
             amountCents={justCreated.amountCents}
             paymentReference={justCreated.reference}
+            payout={data?.payout ?? null}
           />
         </div>
       )}
@@ -364,6 +365,7 @@ function DashboardPage() {
                     <PaymentInstructions
                       amountCents={inv.amount_cents}
                       paymentReference={inv.payment_reference}
+                      payout={data?.payout ?? null}
                     />
                   </div>
                 )}
