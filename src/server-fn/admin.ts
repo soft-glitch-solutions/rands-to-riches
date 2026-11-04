@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
+import type { PayoutAccount } from "@/lib/payment-details";
 
 /* ============================================================
    TYPES
@@ -256,6 +257,66 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       investors,
       recentActivity,
     };
+  });
+
+/* ============================================================
+   PAYOUT ACCOUNT DETAILS (the account investors pay into)
+============================================================ */
+
+export interface PayoutSettings {
+  payout: PayoutAccount | null;
+  updatedAt: string | null;
+}
+
+/** Load the bank account investors pay into (falls back to null). */
+export const getPayoutSettings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PayoutSettings> => {
+    const { data, error } = await context.supabase
+      .from("payout_settings")
+      .select(
+        "bank, account_name, account_number, branch_code, account_type, updated_at",
+      )
+      .eq("id", 1)
+      .maybeSingle();
+    if (error) throw new Error(error.message);
+
+    return {
+      payout: data
+        ? {
+            bank: data.bank,
+            accountName: data.account_name,
+            accountNumber: data.account_number,
+            branchCode: data.branch_code,
+            accountType: data.account_type,
+          }
+        : null,
+      updatedAt: data?.updated_at ?? null,
+    };
+  });
+
+/** Admin-only: save the payout account shown to investors. */
+export const updatePayoutSettings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: PayoutAccount) => input)
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireAdmin(context);
+
+    const row = {
+      id: 1,
+      bank: data.bank.trim(),
+      account_name: data.accountName.trim(),
+      account_number: data.accountNumber.trim(),
+      branch_code: data.branchCode.trim(),
+      account_type: data.accountType.trim(),
+      updated_at: new Date().toISOString(),
+    };
+
+    const { error } = await supabaseAdmin
+      .from("payout_settings")
+      .upsert(row, { onConflict: "id" });
+    if (error) throw new Error(error.message);
+    return { ok: true };
   });
 
 /* ============================================================

@@ -5,7 +5,7 @@ import { useState } from "react";
 import {
   Loader2, ShieldCheck, CheckCircle2, XCircle, Users, Wallet,
   BarChart3, Download, ArrowUpRight, ListChecks, ChevronLeft,
-  FileText, Clock, Calendar,
+  FileText, Clock, Calendar, Landmark, Save,
 } from "lucide-react";
 import {
   approveInvestment,
@@ -14,11 +14,15 @@ import {
   setUserRole,
   getAdminInvestorDetail,
   getPayoutForecast,
+  getPayoutSettings,
+  updatePayoutSettings,
 } from "@/server-fn/admin";
 import { isUserAdmin } from "@/server-fn/investments";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { formatDate, formatRandFromCents } from "@/lib/investment";
 import { cn } from "@/lib/utils";
 
@@ -31,13 +35,14 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "overview" | "payments" | "investors" | "reports";
+type Tab = "overview" | "payments" | "investors" | "reports" | "settings";
 
 const NAV: { id: Tab; label: string; icon: typeof Wallet }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
   { id: "payments", label: "Payments", icon: ListChecks },
   { id: "investors", label: "Investors", icon: Users },
   { id: "reports", label: "Reports", icon: FileText },
+  { id: "settings", label: "Payout account", icon: Landmark },
 ];
 
 /* ---------- Small UI ---------- */
@@ -258,6 +263,145 @@ function InvestorDrilldown({
 }
 
 /* ---------- Main page ---------- */
+
+/* ---------- Payout account (the account investors pay into) ---------- */
+
+const PAYOUT_FIELDS: { key: keyof PayoutFormState; label: string; hint?: string }[] = [
+  { key: "bank", label: "Bank name" },
+  { key: "accountName", label: "Account name" },
+  { key: "accountNumber", label: "Account number" },
+  { key: "branchCode", label: "Branch code" },
+  { key: "accountType", label: "Account type" },
+];
+
+interface PayoutFormState {
+  bank: string;
+  accountName: string;
+  accountNumber: string;
+  branchCode: string;
+  accountType: string;
+}
+
+function PayoutSettingsPanel() {
+  const queryClient = useQueryClient();
+  const fetchSettings = useServerFn(getPayoutSettings);
+  const saveSettings = useServerFn(updatePayoutSettings);
+
+  const { data, isLoading } = useQuery({
+    queryKey: ["payout-settings"],
+    queryFn: () => fetchSettings(),
+  });
+
+  const [form, setForm] = useState<PayoutFormState | null>(null);
+  const [notice, setNotice] = useState<{ tone: "ok" | "error"; text: string } | null>(null);
+
+  // Seed the form from the saved settings once they arrive.
+  if (form === null && data) {
+    setForm({
+      bank: data.payout?.bank ?? "",
+      accountName: data.payout?.accountName ?? "",
+      accountNumber: data.payout?.accountNumber ?? "",
+      branchCode: data.payout?.branchCode ?? "",
+      accountType: data.payout?.accountType ?? "",
+    });
+  }
+
+  const saveMut = useMutation({
+    mutationFn: (v: PayoutFormState) => saveSettings({ data: v }),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["payout-settings"] });
+      setNotice({ tone: "ok", text: "Payout account saved. Investors now see these details." });
+    },
+    onError: (err: unknown) =>
+      setNotice({
+        tone: "error",
+        text: err instanceof Error ? err.message : "Something went wrong.",
+      }),
+  });
+
+  const save = () => {
+    if (!form) return;
+    if (!form.bank.trim() || !form.accountName.trim() || !form.accountNumber.trim()) {
+      setNotice({ tone: "error", text: "Bank, account name and account number are required." });
+      return;
+    }
+    setNotice(null);
+    saveMut.mutate(form);
+  };
+
+  const isPlaceholder = (data?.payout?.accountNumber ?? "").trim() === "";
+
+  return (
+    <div className="space-y-4">
+      <div>
+        <h2 className="font-display text-xl font-extrabold text-foreground sm:text-2xl">
+          Payout account details
+        </h2>
+        <p className="mt-1 max-w-2xl text-sm text-muted-foreground">
+          This is the bank account investors are told to pay into when they start a
+          new cycle. Saving here updates every investor's payment instructions instantly.
+        </p>
+      </div>
+
+      {isPlaceholder && (
+        <p className="rounded-xl bg-amber-500/10 px-4 py-3 text-sm font-medium text-amber-700">
+          No real account has been saved yet — investors currently see placeholder
+          details and are warned not to pay.
+        </p>
+      )}
+
+      {isLoading || !form ? (
+        <div className="flex items-center gap-2 py-8 text-sm text-muted-foreground">
+          <Loader2 className="size-4 animate-spin" /> Loading details…
+        </div>
+      ) : (
+        <div className="max-w-xl space-y-4 rounded-2xl border bg-card p-4 sm:p-5">
+          {PAYOUT_FIELDS.map(({ key, label }) => (
+            <div key={key} className="space-y-1.5">
+              <Label htmlFor={`payout-${key}`} className="text-xs font-bold uppercase tracking-wider text-muted-foreground">
+                {label}
+              </Label>
+              <Input
+                id={`payout-${key}`}
+                value={form[key]}
+                onChange={(e) => setForm({ ...form, [key]: e.target.value })}
+                className="font-semibold"
+              />
+            </div>
+          ))}
+
+          {notice && (
+            <p
+              className={cn(
+                "rounded-xl px-3 py-2 text-sm font-medium",
+                notice.tone === "ok"
+                  ? "bg-emerald-500/10 text-emerald-700"
+                  : "bg-red-500/10 text-red-700",
+              )}
+            >
+              {notice.text}
+            </p>
+          )}
+
+          <div className="flex items-center gap-3">
+            <Button onClick={save} disabled={saveMut.isPending}>
+              {saveMut.isPending ? (
+                <><Loader2 className="mr-2 size-4 animate-spin" /> Saving…</>
+              ) : (
+                <><Save className="mr-2 size-4" /> Save details</>
+              )}
+            </Button>
+            {data?.updatedAt && (
+              <span className="text-xs text-muted-foreground">
+                Last saved {formatDate(data.updatedAt)}
+              </span>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
 
 function AdminPage() {
   const queryClient = useQueryClient();
@@ -991,6 +1135,7 @@ function AdminPage() {
     payments: paymentsTab,
     investors: investorsTab,
     reports: reportsTab,
+    settings: <PayoutSettingsPanel />,
   };
 
   const currentLabel = NAV.find((n) => n.id === tab)?.label ?? "";

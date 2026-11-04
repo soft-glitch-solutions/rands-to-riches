@@ -1,23 +1,26 @@
 import { useState } from "react";
 import { Check, Copy, Landmark, TriangleAlert } from "lucide-react";
-import { PAYOUT_ACCOUNT, IS_PLACEHOLDER_ACCOUNT } from "@/lib/payment-details";
+import { resolvePayout, type PayoutAccount } from "@/lib/payment-details";
 import { formatRandFromCents } from "@/lib/investment";
 
 interface Props {
   amountCents: number;
   paymentReference: string;
+  /** Saved account details from the admin area; falls back to placeholders. */
+  payout?: PayoutAccount | null;
 }
 
 /** "Pay into this account" card shown for pending investment cycles. */
-export function PaymentInstructions({ amountCents, paymentReference }: Props) {
+export function PaymentInstructions({ amountCents, paymentReference, payout }: Props) {
   const [copied, setCopied] = useState(false);
+  const { account, isPlaceholder } = resolvePayout(payout);
 
   const rows: Array<[string, string]> = [
-    ["Bank", PAYOUT_ACCOUNT.bank],
-    ["Account name", PAYOUT_ACCOUNT.accountName],
-    ["Account number", PAYOUT_ACCOUNT.accountNumber],
-    ["Branch code", PAYOUT_ACCOUNT.branchCode],
-    ["Account type", PAYOUT_ACCOUNT.accountType],
+    ["Bank", account.bank],
+    ["Account name", account.accountName],
+    ["Account number", account.accountNumber],
+    ["Branch code", account.branchCode],
+    ["Account type", account.accountType],
   ];
 
   const copyReference = async () => {
@@ -72,7 +75,7 @@ export function PaymentInstructions({ amountCents, paymentReference }: Props) {
         </button>
       </div>
 
-      {IS_PLACEHOLDER_ACCOUNT && (
+      {isPlaceholder && (
         <p className="mt-3 flex items-start gap-2 rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-medium text-amber-700">
           <TriangleAlert className="mt-0.5 size-4 shrink-0" />
           These are placeholder bank details. Do not pay until MOTUS Capital confirms the real account.
