@@ -1,6 +1,10 @@
 import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 
+/* ============================================================
+   TYPES
+============================================================ */
+
 export interface AdminInvestorRow {
   userId: string;
   fullName: string | null;
@@ -11,6 +15,10 @@ export interface AdminInvestorRow {
   investmentCount: number;
   totalInvestedCents: number;
   activeCents: number;
+  /** NEW: capital in cycles already matured/withdrawn */
+  maturedCents: number;
+  /** NEW: capital tied up in pending (unapproved) payments */
+  pendingCents: number;
 }
 
 export interface AdminPendingInvestment {
@@ -24,6 +32,15 @@ export interface AdminPendingInvestment {
   createdAt: string;
 }
 
+export interface AdminRecentActivity {
+  id: string;
+  action: "approved" | "rejected" | "created";
+  amountCents: number;
+  fullName: string | null;
+  email: string | null;
+  at: string;
+}
+
 export interface AdminOverview {
   investorCount: number;
   totalInvestedCents: number;
@@ -32,7 +49,55 @@ export interface AdminOverview {
   pendingCount: number;
   pending: AdminPendingInvestment[];
   investors: AdminInvestorRow[];
+  /** NEW */
+  recentActivity: AdminRecentActivity[];
 }
+
+export interface PayoutBucket {
+  maturities: number;
+  principalCents: number;
+  profitCents: number;
+  totalCents: number;
+}
+
+export interface PayoutForecast {
+  thisMonth: PayoutBucket;
+  nextMonth: PayoutBucket;
+  next90: PayoutBucket;
+}
+
+export interface AdminInvestorDetail {
+  profile: {
+    userId: string;
+    fullName: string | null;
+    email: string | null;
+    phone: string | null;
+    joinedAt: string | null;
+    bank: {
+      name: string | null;
+      holder: string | null;
+      accountNumber: string | null;
+      branchCode: string | null;
+      type: string | null;
+    };
+  } | null;
+  roles: string[];
+  investments: {
+    id: string;
+    amountCents: number;
+    termDays: number;
+    status: string;
+    maturesAt: string;
+    createdAt: string;
+    paymentReference: string | null;
+    maturityAction: string | null;
+    profitEstimateCents: number;
+  }[];
+}
+
+/* ============================================================
+   HELPERS
+============================================================ */
 
 /** Every admin action verifies the caller's admin role before anything else. */
 async function requireAdmin(context: {
@@ -53,10 +118,17 @@ async function requireAdmin(context: {
 // Helper only used in the type above.
 declare function getSupabaseFromContext(): Promise<unknown>;
 
-/**
- * Admin-only snapshot: every account, role, and investment — with the
- * pending payment queue first.
- */
+/** Estimate profit on a single cycle — matches the client-side display. */
+function profitRate(termDays: number): number {
+  if (termDays >= 90) return 0.25;
+  if (termDays >= 60) return 0.22;
+  return 0.2;
+}
+
+/* ============================================================
+   OVERVIEW (extended)
+============================================================ */
+
 export const getAdminOverview = createServerFn({ method: "GET" })
   .middleware([requireSupabaseAuth])
   .handler(async ({ context }): Promise<AdminOverview> => {
@@ -71,7 +143,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         supabaseAdmin
           .from("investments")
           .select(
-            "id, user_id, amount_cents, status, maturity_action, term_days, payment_reference, created_at, matures_at",
+            "id, user_id, amount_cents, status, maturity_action, term_days, payment_reference, created_at, matures_at, updated_at",
           )
           .order("created_at", { ascending: false }),
         supabaseAdmin.from("user_roles").select("user_id, role"),
@@ -87,6 +159,10 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     for (const user of usersResult.data.users) {
       if (user.email) emailByUser.set(user.id, user.email);
     }
+    const nameByUser = new Map<string, string | null>();
+    for (const p of profilesResult.data ?? []) {
+      nameByUser.set(p.id, p.full_name ?? null);
+    }
     const rolesByUser = new Map<string, string[]>();
     for (const row of rolesResult.data ?? []) {
       const list = rolesByUser.get(row.user_id) ?? [];
@@ -96,14 +172,13 @@ export const getAdminOverview = createServerFn({ method: "GET" })
 
     const all = investmentsResult.data ?? [];
 
+    /* ---------- Pending ---------- */
     const pending: AdminPendingInvestment[] = all
       .filter((inv) => inv.status === "pending")
       .map((inv) => ({
         id: inv.id,
         userId: inv.user_id,
-        fullName:
-          (profilesResult.data ?? []).find((p) => p.id === inv.user_id)
-            ?.full_name ?? null,
+        fullName: nameByUser.get(inv.user_id) ?? null,
         email: emailByUser.get(inv.user_id) ?? null,
         amountCents: inv.amount_cents,
         termDays: inv.term_days,
@@ -111,12 +186,21 @@ export const getAdminOverview = createServerFn({ method: "GET" })
         createdAt: inv.created_at,
       }));
 
+    /* ---------- Investors ---------- */
     const investors: AdminInvestorRow[] = (profilesResult.data ?? []).map(
       (profile) => {
         const own = all.filter((inv) => inv.user_id === profile.id);
         const total = own.reduce((sum, inv) => sum + inv.amount_cents, 0);
         const active = own
           .filter((inv) => inv.status === "active")
+          .reduce((sum, inv) => sum + inv.amount_cents, 0);
+        const matured = own
+          .filter(
+            (inv) => inv.status === "matured" || inv.status === "withdrawn",
+          )
+          .reduce((sum, inv) => sum + inv.amount_cents, 0);
+        const pendingAmt = own
+          .filter((inv) => inv.status === "pending")
           .reduce((sum, inv) => sum + inv.amount_cents, 0);
         return {
           userId: profile.id,
@@ -128,9 +212,33 @@ export const getAdminOverview = createServerFn({ method: "GET" })
           investmentCount: own.length,
           totalInvestedCents: total,
           activeCents: active,
+          maturedCents: matured,
+          pendingCents: pendingAmt,
         };
       },
     );
+
+    /* ---------- Recent activity ---------- */
+    const recentActivity: AdminRecentActivity[] = all
+      .filter((inv) => inv.status !== "pending")
+      .slice(0, 10)
+      .map((inv) => {
+        const status = inv.status;
+        const action: AdminRecentActivity["action"] =
+          status === "active"
+            ? "approved"
+            : status === "rejected"
+              ? "rejected"
+              : "created";
+        return {
+          id: inv.id,
+          action,
+          amountCents: inv.amount_cents,
+          fullName: nameByUser.get(inv.user_id) ?? null,
+          email: emailByUser.get(inv.user_id) ?? null,
+          at: inv.updated_at ?? inv.created_at,
+        };
+      });
 
     return {
       investorCount: investors.length,
@@ -146,8 +254,144 @@ export const getAdminOverview = createServerFn({ method: "GET" })
       pendingCount: pending.length,
       pending,
       investors,
+      recentActivity,
     };
   });
+
+/* ============================================================
+   FORECAST (new)
+============================================================ */
+
+export const getPayoutForecast = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<PayoutForecast> => {
+    const supabaseAdmin = await requireAdmin(context);
+
+    const now = new Date();
+    const startOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const startOfNext = new Date(now.getFullYear(), now.getMonth() + 1, 1);
+    const startOfMonthAfter = new Date(
+      now.getFullYear(),
+      now.getMonth() + 2,
+      1,
+    );
+    const endOf90 = new Date(now.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+    const { data, error } = await supabaseAdmin
+      .from("investments")
+      .select("amount_cents, term_days, matures_at")
+      .eq("status", "active")
+      .lte("matures_at", endOf90.toISOString());
+
+    if (error) throw new Error(error.message);
+
+    const bucket = (from: Date, to: Date): PayoutBucket => {
+      const slice = (data ?? []).filter((inv) => {
+        const t = new Date(inv.matures_at).getTime();
+        return t >= from.getTime() && t < to.getTime();
+      });
+      let principalCents = 0;
+      let profitCents = 0;
+      for (const inv of slice) {
+        const amt = inv.amount_cents;
+        principalCents += amt;
+        profitCents += Math.round(amt * profitRate(inv.term_days));
+      }
+      return {
+        maturities: slice.length,
+        principalCents,
+        profitCents,
+        totalCents: principalCents + profitCents,
+      };
+    };
+
+    return {
+      thisMonth: bucket(startOfThisMonth, startOfNext),
+      nextMonth: bucket(startOfNext, startOfMonthAfter),
+      next90: bucket(now, endOf90),
+    };
+  });
+
+/* ============================================================
+   INVESTOR DETAIL (new)
+============================================================ */
+
+export const getAdminInvestorDetail = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .inputValidator((input: { userId: string }) => input)
+  .handler(async ({ data, context }): Promise<AdminInvestorDetail> => {
+    const supabaseAdmin = await requireAdmin(context);
+
+    const [profileResult, rolesResult, investmentsResult, usersResult] =
+      await Promise.all([
+        supabaseAdmin
+          .from("profiles")
+          .select(
+            "id, full_name, phone, created_at, bank_name, bank_account_holder, bank_account_number, bank_branch_code, bank_account_type",
+          )
+          .eq("id", data.userId)
+          .maybeSingle(),
+        supabaseAdmin
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", data.userId),
+        supabaseAdmin
+          .from("investments")
+          .select(
+            "id, amount_cents, term_days, status, matures_at, created_at, payment_reference, maturity_action",
+          )
+          .eq("user_id", data.userId)
+          .order("created_at", { ascending: false }),
+        supabaseAdmin.auth.admin.getUserById(data.userId),
+      ]);
+
+    if (profileResult.error) throw new Error(profileResult.error.message);
+    if (rolesResult.error) throw new Error(rolesResult.error.message);
+    if (investmentsResult.error)
+      throw new Error(investmentsResult.error.message);
+
+    const profile = profileResult.data;
+    const email = usersResult.data?.user?.email ?? null;
+
+    const investments = (investmentsResult.data ?? []).map((inv) => ({
+      id: inv.id,
+      amountCents: inv.amount_cents,
+      termDays: inv.term_days,
+      status: inv.status,
+      maturesAt: inv.matures_at,
+      createdAt: inv.created_at,
+      paymentReference: inv.payment_reference ?? null,
+      maturityAction: inv.maturity_action ?? null,
+      profitEstimateCents: Math.round(
+        inv.amount_cents * profitRate(inv.term_days),
+      ),
+    }));
+
+    return {
+      profile: profile
+        ? {
+            userId: profile.id,
+            fullName: profile.full_name ?? null,
+            email,
+            phone: profile.phone ?? null,
+            joinedAt: profile.created_at ?? null,
+            bank: {
+              name: profile.bank_name ?? null,
+              holder: profile.bank_account_holder ?? null,
+              accountNumber: profile.bank_account_number ?? null,
+              branchCode: profile.bank_branch_code ?? null,
+              type: profile.bank_account_type ?? null,
+            },
+          }
+        : null,
+      roles: (rolesResult.data ?? []).map((r) => r.role),
+      investments,
+    };
+  });
+
+/* ============================================================
+   MUTATIONS (unchanged behavior)
+============================================================ */
 
 /**
  * Approve an investor's payment: the cycle becomes active and its maturity
