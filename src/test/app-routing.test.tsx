@@ -14,4 +14,11 @@ describe("App routing", () => {
 
     expect(matches.at(-1)?.routeId).not.toBe(rootRouteId);
   });
+
+  it("matches the legal pages without falling back to not found", () => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+
+    expect(router.matchRoutes("/terms").at(-1)?.routeId).not.toBe(rootRouteId);
+    expect(router.matchRoutes("/privacy").at(-1)?.routeId).not.toBe(rootRouteId);
+  });
 });

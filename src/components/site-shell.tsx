@@ -20,6 +20,11 @@ const NAV_LINKS = [
   { to: "/contact", label: "Contact" },
 ] as const;
 
+const LEGAL_LINKS = [
+  { to: "/terms", label: "Terms" },
+  { to: "/privacy", label: "Privacy Policy" },
+] as const;
+
 // TODO(owner): point these at the real MOTUS Capital social pages.
 const SOCIAL_LINKS = [
   { label: "Facebook", href: "https://www.facebook.com/motuscapital", Icon: Facebook },
@@ -183,17 +188,30 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             </div>
 
             {/* Footer nav — single column list on all sizes, feels like an app menu */}
-            <nav className="flex flex-col gap-2 text-sm sm:items-end">
-              {NAV_LINKS.map((link) => (
-                <Link
-                  key={link.to}
-                  to={link.to}
-                  className="font-medium text-muted-foreground transition-colors hover:text-primary"
-                >
-                  {link.label}
-                </Link>
-              ))}
-            </nav>
+            <div className="flex flex-col gap-4 text-sm sm:items-end">
+              <nav className="flex flex-col gap-2">
+                {NAV_LINKS.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className="font-medium text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
+              <nav className="flex flex-col gap-2">
+                {LEGAL_LINKS.map((link) => (
+                  <Link
+                    key={link.to}
+                    to={link.to}
+                    className="font-medium text-muted-foreground transition-colors hover:text-primary"
+                  >
+                    {link.label}
+                  </Link>
+                ))}
+              </nav>
+            </div>
           </div>
 
           <p className="mt-8 max-w-3xl text-[11px] leading-relaxed text-muted-foreground sm:text-xs">
