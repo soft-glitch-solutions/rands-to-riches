@@ -24,29 +24,27 @@ export const Route = createFileRoute("/auth")({
   head: () => ({
     meta: [
       { title: "Sign in — MOTUS Capital" },
-      {
-        name: "description",
-        content: "Sign in to your MOTUS Capital investment account.",
-      },
+      { name: "description", content: "Sign in to your MOTUS Capital investment account." },
       { property: "og:title", content: "Sign in — MOTUS Capital" },
-      {
-        property: "og:description",
-        content: "Sign in to manage your mobility investments.",
-      },
+      { property: "og:description", content: "Sign in to manage your mobility investments." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
-  beforeLoad: async () => {
+  beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getUser();
     if (data.user) {
-      throw redirect({ to: "/dashboard" });
+      // Signed-in visitors go straight to their dashboard, preserving amount.
+      throw redirect({
+        to: "/dashboard",
+        search: search.amount !== undefined ? { amount: search.amount } : undefined,
+      });
     }
   },
   component: AuthPage,
 });
 
-/* ---------- Small icon set for social buttons ---------- */
+/* ---------- Social icons (unchanged) ---------- */
 
 function AppleIcon({ className }: { className?: string }) {
   return (
@@ -86,6 +84,14 @@ function AuthPage() {
   const [busy, setBusy] = useState(false);
   const [socialBusy, setSocialBusy] = useState<"google" | "apple" | "facebook" | null>(null);
 
+  const goDashboard = () => {
+    navigate({
+      to: "/dashboard",
+      replace: true,
+      ...(amount !== undefined ? { search: { amount } } : {}),
+    });
+  };
+
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
@@ -100,7 +106,7 @@ function AuthPage() {
       return;
     }
     if (amount !== undefined) savePendingAmount(amount);
-    navigate({ to: "/dashboard", ...(amount !== undefined ? { search: { amount } } : {}) });
+    goDashboard();
   };
 
   const social = async (kind: "google" | "apple" | "facebook") => {
@@ -113,7 +119,14 @@ function AuthPage() {
           ? await signInWithApple(amount)
           : await signInWithFacebook(amount);
     setSocialBusy(null);
-    if (err) setError(err);
+    if (err) {
+      setError(err);
+      return;
+    }
+    // Social sign-in typically navigates away (OAuth) — but if a session
+    // already exists (e.g. Apple on Safari), land on the dashboard now.
+    const { data } = await supabase.auth.getSession();
+    if (data.session) goDashboard();
   };
 
   const signupLinkProps =
@@ -121,7 +134,7 @@ function AuthPage() {
       ? ({ to: "/signup", search: { amount } } as const)
       : ({ to: "/signup" } as const);
 
-  /* ---------- Form panel (shared mobile + desktop) ---------- */
+  /* ---------- Form panel ---------- */
 
   const formPanel = (
     <div className="w-full max-w-md">
@@ -167,7 +180,7 @@ function AuthPage() {
                   }
                   supabase.auth
                     .resetPasswordForEmail(email.trim(), {
-                      redirectTo: `${window.location.origin}/auth`,
+                      redirectTo: `${window.location.origin}/dashboard`,
                     })
                     .then(({ error: resetErr }) => {
                       if (resetErr) setError(resetErr.message);
@@ -221,49 +234,15 @@ function AuthPage() {
           <span className="h-px flex-1 bg-border" />
         </div>
 
-        {/* Social buttons — 3-up */}
         <div className="grid grid-cols-3 gap-2">
-          <Button
-            type="button"
-            variant="outline"
-            disabled={socialBusy !== null}
-            onClick={() => social("google")}
-            aria-label="Continue with Google"
-            className="h-11 rounded-xl"
-          >
-            {socialBusy === "google" ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <GoogleIcon className="size-5" />
-            )}
+          <Button type="button" variant="outline" disabled={socialBusy !== null} onClick={() => social("google")} aria-label="Continue with Google" className="h-11 rounded-xl">
+            {socialBusy === "google" ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon className="size-5" />}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={socialBusy !== null}
-            onClick={() => social("apple")}
-            aria-label="Continue with Apple"
-            className="h-11 rounded-xl"
-          >
-            {socialBusy === "apple" ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <AppleIcon className="size-5" />
-            )}
+          <Button type="button" variant="outline" disabled={socialBusy !== null} onClick={() => social("apple")} aria-label="Continue with Apple" className="h-11 rounded-xl">
+            {socialBusy === "apple" ? <Loader2 className="size-4 animate-spin" /> : <AppleIcon className="size-5" />}
           </Button>
-          <Button
-            type="button"
-            variant="outline"
-            disabled={socialBusy !== null}
-            onClick={() => social("facebook")}
-            aria-label="Continue with Facebook"
-            className="h-11 rounded-xl"
-          >
-            {socialBusy === "facebook" ? (
-              <Loader2 className="size-4 animate-spin" />
-            ) : (
-              <FacebookIcon className="size-5 text-[#1877F2]" />
-            )}
+          <Button type="button" variant="outline" disabled={socialBusy !== null} onClick={() => social("facebook")} aria-label="Continue with Facebook" className="h-11 rounded-xl">
+            {socialBusy === "facebook" ? <Loader2 className="size-4 animate-spin" /> : <FacebookIcon className="size-5 text-[#1877F2]" />}
           </Button>
         </div>
 
@@ -275,37 +254,23 @@ function AuthPage() {
         </p>
       </div>
 
-      {/* Demo shortcuts */}
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <Button
-          asChild
-          variant="ghost"
-          className="h-10 flex-1 rounded-xl text-xs text-muted-foreground hover:text-foreground"
-        >
+        <Button asChild variant="ghost" className="h-10 flex-1 rounded-xl text-xs text-muted-foreground hover:text-foreground">
           <Link to="/demo">
             <Eye className="mr-2 size-3.5" />
             Preview investor demo
           </Link>
         </Button>
-        <Button
-          asChild
-          variant="outline"
-          className="h-10 flex-1 rounded-xl border-primary/20 text-xs font-semibold text-primary hover:bg-primary/5"
-        >
-          <Link to="/admin-demo">
-            Admin payment demo →
-          </Link>
+        <Button asChild variant="outline" className="h-10 flex-1 rounded-xl border-primary/20 text-xs font-semibold text-primary hover:bg-primary/5">
+          <Link to="/admin-demo">Admin payment demo →</Link>
         </Button>
       </div>
     </div>
   );
 
-  /* ---------- Brand pitch (desktop left, mobile compact top) ---------- */
-
   const brandPitch = (
     <div className="space-y-6">
       <BrandMark />
-
       <div className="space-y-3">
         <h2 className="font-display text-3xl font-extrabold leading-tight text-foreground xl:text-4xl">
           Put your money on the road.
@@ -315,29 +280,12 @@ function AuthPage() {
           Transparent weekly revenue. Real fleet telemetry. Returns from 13%–25%.
         </p>
       </div>
-
       <ul className="space-y-3">
         {[
-          {
-            icon: TrendingUp,
-            title: "13%–25% per cycle",
-            body: "Returns generated by real vehicle earnings.",
-          },
-          {
-            icon: Car,
-            title: "Asset-backed",
-            body: "Every cycle is tied to a funded vehicle or bike.",
-          },
-          {
-            icon: ShieldCheck,
-            title: "Bank-grade payouts",
-            body: "Verified payout account, encrypted at rest.",
-          },
-          {
-            icon: Sparkles,
-            title: "Compounding built in",
-            body: "Reinvest or withdraw when each cycle matures.",
-          },
+          { icon: TrendingUp, title: "13%–25% per cycle", body: "Returns generated by real vehicle earnings." },
+          { icon: Car, title: "Asset-backed", body: "Every cycle is tied to a funded vehicle or bike." },
+          { icon: ShieldCheck, title: "Bank-grade payouts", body: "Verified payout account, encrypted at rest." },
+          { icon: Sparkles, title: "Compounding built in", body: "Reinvest or withdraw when each cycle matures." },
         ].map((f) => {
           const Icon = f.icon;
           return (
@@ -356,24 +304,18 @@ function AuthPage() {
     </div>
   );
 
-  /* ---------- Layout ---------- */
-
   return (
     <div className="min-h-screen bg-background">
-      {/* ===== MOBILE ===== */}
+      {/* MOBILE */}
       <div className="lg:hidden">
         <div className="mx-auto max-w-md px-4 py-6">
           <div className="mb-5 flex items-center justify-between">
             <BrandMark />
-            <Link
-              to="/"
-              className="text-[11px] font-semibold text-muted-foreground hover:text-foreground"
-            >
+            <Link to="/" className="text-[11px] font-semibold text-muted-foreground hover:text-foreground">
               Back to site
             </Link>
           </div>
 
-          {/* Compact value strip */}
           <div className="mb-5 rounded-2xl border border-primary/20 bg-primary/5 p-3.5">
             <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
               Returns from 13%–25%
@@ -387,11 +329,9 @@ function AuthPage() {
         </div>
       </div>
 
-      {/* ===== DESKTOP: split 50/50 ===== */}
+      {/* DESKTOP */}
       <div className="hidden min-h-screen lg:grid lg:grid-cols-2">
-        {/* Left — brand */}
         <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 via-background to-background px-10 py-12">
-          {/* subtle radial */}
           <div
             className="pointer-events-none absolute inset-0 opacity-40"
             style={{
@@ -402,20 +342,14 @@ function AuthPage() {
           <div className="relative z-10 max-w-md">{brandPitch}</div>
         </div>
 
-        {/* Right — form */}
         <div className="flex items-center justify-center bg-card/40 px-10 py-12">
           <div className="w-full max-w-md">
             {formPanel}
             <p className="mt-6 text-center text-[11px] text-muted-foreground">
               By continuing you agree to our{" "}
-              <Link to="/terms" className="underline hover:text-foreground">
-                Terms
-              </Link>{" "}
+              <Link to="/terms" className="underline hover:text-foreground">Terms</Link>{" "}
               and{" "}
-              <Link to="/privacy" className="underline hover:text-foreground">
-                Privacy Policy
-              </Link>
-              .
+              <Link to="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
             </p>
           </div>
         </div>
