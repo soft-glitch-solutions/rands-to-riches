@@ -1,4 +1,3 @@
-
 import { lovable } from "@/integrations/lovable/index";
 
 export const PENDING_AMOUNT_KEY = "motus:pending-amount";
@@ -26,6 +25,9 @@ export function takePendingAmount(): number | null {
   }
 }
 
+/** Where OAuth providers send users back to after sign-in. */
+const OAUTH_REDIRECT = `${window.location.origin}/dashboard`;
+
 async function handleSocialResult(
   result: Awaited<ReturnType<typeof lovable.auth.signInWithOAuth>>,
 ): Promise<string | null> {
@@ -39,7 +41,7 @@ export function signInWithGoogle(amount?: number) {
 
   return lovable.auth
     .signInWithOAuth("google", {
-      redirect_uri: window.location.origin,
+      redirect_uri: OAUTH_REDIRECT,
     })
     .then(handleSocialResult);
 }
@@ -49,7 +51,7 @@ export function signInWithApple(amount?: number) {
 
   return lovable.auth
     .signInWithOAuth("apple", {
-      redirect_uri: window.location.origin,
+      redirect_uri: OAUTH_REDIRECT,
     })
     .then(handleSocialResult);
 }
@@ -59,17 +61,7 @@ export function signInWithFacebook(amount?: number) {
 
   return lovable.auth
     .signInWithOAuth("facebook", {
-      redirect_uri: window.location.origin,
-    })
-    .then(handleSocialResult);
-}
-
-export function signInWithLovable(amount?: number) {
-  if (amount !== undefined) savePendingAmount(amount);
-
-  return lovable.auth
-    .signInWithOAuth("lovable", {
-      redirect_uri: window.location.origin,
+      redirect_uri: OAUTH_REDIRECT,
     })
     .then(handleSocialResult);
 }
