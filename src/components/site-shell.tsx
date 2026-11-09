@@ -1,11 +1,11 @@
+
 import { Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import {
   Facebook,
   Instagram,
-  Linkedin,
-  MessageCircle,
-  Twitter,
+  Youtube,
+  Music2,
   Menu,
   X,
 } from "lucide-react";
@@ -25,13 +25,28 @@ const LEGAL_LINKS = [
   { to: "/privacy", label: "Privacy Policy" },
 ] as const;
 
-// TODO(owner): point these at the real MOTUS Capital social pages.
+// MOTUS Capital social media links
 const SOCIAL_LINKS = [
-  { label: "Facebook", href: "https://www.facebook.com/motuscapital", Icon: Facebook },
-  { label: "Instagram", href: "https://www.instagram.com/motuscapital", Icon: Instagram },
-  { label: "X (Twitter)", href: "https://x.com/motuscapital", Icon: Twitter },
-  { label: "LinkedIn", href: "https://www.linkedin.com/company/motuscapital", Icon: Linkedin },
-  { label: "WhatsApp", href: "https://wa.me/27821234567", Icon: MessageCircle },
+  {
+    label: "Facebook",
+    href: "https://www.facebook.com/motuscapital",
+    Icon: Facebook,
+  },
+  {
+    label: "Instagram",
+    href: "https://www.instagram.com/motuscapital",
+    Icon: Instagram,
+  },
+  {
+    label: "YouTube",
+    href: "https://www.youtube.com/@MotusCapital",
+    Icon: Youtube,
+  },
+  {
+    label: "TikTok",
+    href: "https://www.tiktok.com/@motus.capital",
+    Icon: Music2,
+  },
 ];
 
 /** Session-aware sign-in affordance for public pages. */
@@ -54,7 +69,12 @@ function AuthArea({ compact = false }: { compact?: boolean }) {
   }
 
   return (
-    <Button asChild variant="ghost" size={compact ? "sm" : "default"} className="px-2.5 sm:px-3">
+    <Button
+      asChild
+      variant="ghost"
+      size={compact ? "sm" : "default"}
+      className="px-2.5 sm:px-3"
+    >
       <Link
         to={signedIn ? "/dashboard" : "/auth"}
         className="text-primary text-xs font-bold sm:text-sm"
@@ -124,6 +144,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               <AuthArea />
             </div>
             <AuthArea compact />
+
             {/* Hamburger (mobile only) */}
             <button
               type="button"
@@ -132,7 +153,11 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               aria-expanded={menuOpen}
               className="flex size-9 items-center justify-center rounded-full text-foreground transition-colors hover:bg-secondary md:hidden"
             >
-              {menuOpen ? <X className="size-5" /> : <Menu className="size-5" />}
+              {menuOpen ? (
+                <X className="size-5" />
+              ) : (
+                <Menu className="size-5" />
+              )}
             </button>
           </div>
         </div>
@@ -170,6 +195,8 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
                 Your money in motion. Invest in the mobility economy from R100.
               </p>
+
+              {/* Social media links */}
               <div className="mt-4 flex gap-1.5">
                 {SOCIAL_LINKS.map(({ label, href, Icon }) => (
                   <a
@@ -187,7 +214,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
               </div>
             </div>
 
-            {/* Footer nav — single column list on all sizes, feels like an app menu */}
+            {/* Footer navigation */}
             <div className="flex flex-col gap-4 text-sm sm:items-end">
               <nav className="flex flex-col gap-2">
                 {NAV_LINKS.map((link) => (
@@ -200,6 +227,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
                   </Link>
                 ))}
               </nav>
+
               <nav className="flex flex-col gap-2">
                 {LEGAL_LINKS.map((link) => (
                   <Link
@@ -221,6 +249,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
             investment concept only; no investment is being accepted or
             processed.
           </p>
+
           <p className="mt-4 text-[11px] text-muted-foreground sm:text-xs">
             © {new Date().getFullYear()} MOTUS Capital — Your money in motion.
           </p>
