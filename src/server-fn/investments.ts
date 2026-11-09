@@ -2,8 +2,10 @@ import { createServerFn } from "@tanstack/react-start";
 import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { clampInvestment, generatePaymentReference } from "@/lib/investment";
 import type { PayoutAccount } from "@/lib/payment-details";
+import type { Tables } from "@/integrations/supabase/types";
 
 export type MaturityAction = "withdraw" | "reinvest";
+export type PayoutRequestRow = Tables<"payout_requests">;
 
 /** Everything the signed-in investor sees on their dashboard. */
 export const getMyInvestments = createServerFn({ method: "GET" })
@@ -11,7 +13,7 @@ export const getMyInvestments = createServerFn({ method: "GET" })
   .handler(async ({ context }) => {
     const { supabase, userId, claims } = context;
 
-    const [investments, profile, payoutRow] = await Promise.all([
+    const [investments, profile, payoutRow, payoutRequests] = await Promise.all([
       supabase
         .from("investments")
         .select("*")
@@ -30,6 +32,10 @@ export const getMyInvestments = createServerFn({ method: "GET" })
         )
         .eq("id", 1)
         .maybeSingle(),
+      supabase
+        .from("payout_requests")
+        .select("*")
+        .order("created_at", { ascending: false }),
     ]);
 
     if (investments.error) throw new Error(investments.error.message);
@@ -58,13 +64,14 @@ export const getMyInvestments = createServerFn({ method: "GET" })
       bankAccountType: profile.data?.bank_account_type ?? null,
       payout,
       investments: investments.data,
+      payoutRequests: payoutRequests.data ?? [],
     };
   });
 
 /** Start a new investment cycle with the chosen amount and term. */
 export const createInvestment = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator(
+  .validator(
     (input: {
       amountRands: number;
       maturityAction: MaturityAction;
@@ -103,7 +110,7 @@ export const createInvestment = createServerFn({ method: "POST" })
 /** Change the withdraw / reinvest choice on one of the user's investments. */
 export const setMaturityAction = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
-  .inputValidator((input: { id: string; action: MaturityAction }) => input)
+  .validator((input: { id: string; action: MaturityAction }) => input)
   .handler(async ({ data, context }) => {
     const action = data.action === "reinvest" ? "reinvest" : "withdraw";
     // RLS scopes this to the owner's rows.
@@ -113,6 +120,62 @@ export const setMaturityAction = createServerFn({ method: "POST" })
       .eq("id", data.id);
     if (error) throw new Error(error.message);
     return { ok: true };
+  });
+
+export interface RequestPayoutInput {
+  investmentId: string;
+  amountCents: number;
+  bankName: string;
+  accountHolder?: string;
+  accountNumber: string;
+  branchCode?: string;
+  accountType?: string;
+}
+
+/** Submit a real withdrawal request for a matured investment. */
+export const requestPayout = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: RequestPayoutInput) => input)
+  .handler(async ({ data, context }) => {
+    const { supabase, userId } = context;
+
+    if (!data.investmentId) {
+      throw new Error("Missing investment ID");
+    }
+    if (!data.accountNumber || !data.bankName) {
+      throw new Error("Bank name and account number are required");
+    }
+    if (!data.amountCents || data.amountCents <= 0) {
+      throw new Error("Invalid withdrawal amount");
+    }
+
+    // Insert payout request
+    const { data: requestRow, error: insertError } = await supabase
+      .from("payout_requests")
+      .insert({
+        user_id: userId,
+        investment_id: data.investmentId,
+        amount_cents: data.amountCents,
+        bank_name: data.bankName,
+        account_holder: data.accountHolder || "",
+        account_number: data.accountNumber,
+        branch_code: data.branchCode || "",
+        account_type: data.accountType || "savings",
+        status: "pending",
+      })
+      .select("*")
+      .single();
+
+    if (insertError) throw new Error(insertError.message);
+
+    // Also update investment maturity_action to withdraw
+    await supabase
+      .from("investments")
+      .update({ maturity_action: "withdraw" })
+      .eq("id", data.investmentId)
+      .eq("user_id", userId);
+
+    return requestRow;
   });
 
 /** Used by the admin route guard — true only for accounts with the admin role. */

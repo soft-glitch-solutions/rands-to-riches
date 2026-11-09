@@ -29,6 +29,13 @@
       "when": 1793815322896,
       "tag": "0003_add_investments_updated_at_and_payout_settings",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1794200000000,
+      "tag": "0004_payout_requests_and_driver_earnings",
+      "breakpoints": true
     }
   ]
 }

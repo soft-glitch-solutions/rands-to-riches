@@ -525,3 +525,270 @@ export const setUserRole = createServerFn({ method: "POST" })
     if (error) throw new Error(error.message);
     return { ok: true };
   });
+
+
+/* ============================================================
+   PAYOUT REQUESTS REVIEW WORKFLOW
+============================================================ */
+
+export interface AdminPayoutRequest {
+  id: string;
+  userId: string;
+  fullName: string | null;
+  phone: string | null;
+  investmentId: string | null;
+  amountCents: number;
+  bankName: string;
+  accountHolder: string;
+  accountNumber: string;
+  branchCode: string;
+  accountType: string;
+  status: "pending" | "processing" | "completed" | "rejected";
+  adminNotes: string | null;
+  processedAt: string | null;
+  createdAt: string;
+}
+
+export const getAdminPayoutRequests = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AdminPayoutRequest[]> => {
+    const supabaseAdmin = await requireAdmin(context);
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("payout_requests")
+      .select("*, profiles:user_id(full_name, phone)")
+      .order("created_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    return (rows ?? []).map((row: any) => ({
+      id: row.id,
+      userId: row.user_id,
+      fullName: row.profiles?.full_name ?? null,
+      phone: row.profiles?.phone ?? null,
+      investmentId: row.investment_id,
+      amountCents: row.amount_cents,
+      bankName: row.bank_name,
+      accountHolder: row.account_holder,
+      accountNumber: row.account_number,
+      branchCode: row.branch_code,
+      accountType: row.account_type,
+      status: row.status as AdminPayoutRequest["status"],
+      adminNotes: row.admin_notes,
+      processedAt: row.processed_at,
+      createdAt: row.created_at,
+    }));
+  });
+
+export const updatePayoutRequestStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator(
+    (input: {
+      id: string;
+      status: "processing" | "completed" | "rejected";
+      adminNotes?: string;
+    }) => input,
+  )
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireAdmin(context);
+
+    const updatePayload: {
+      status: string;
+      admin_notes?: string;
+      processed_at?: string;
+    } = {
+      status: data.status,
+      admin_notes: data.adminNotes ?? null,
+    };
+
+    if (data.status === "completed") {
+      updatePayload.processed_at = new Date().toISOString();
+    }
+
+    const { error } = await supabaseAdmin
+      .from("payout_requests")
+      .update(updatePayload)
+      .eq("id", data.id);
+
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/* ============================================================
+   DRIVERS & FLEET LOGISTICS WORKFLOW
+============================================================ */
+
+export interface AdminDriver {
+  id: string;
+  fullName: string;
+  phone: string;
+  licenseNumber: string;
+  vehicleAssigned: string;
+  vehicleReg: string;
+  status: "active" | "inactive";
+  createdAt: string;
+  updatedAt: string;
+}
+
+export const getAdminDrivers = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AdminDriver[]> => {
+    const supabaseAdmin = await requireAdmin(context);
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("drivers")
+      .select("*")
+      .order("created_at", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    return (rows ?? []).map((row) => ({
+      id: row.id,
+      fullName: row.full_name,
+      phone: row.phone,
+      licenseNumber: row.license_number,
+      vehicleAssigned: row.vehicle_assigned,
+      vehicleReg: row.vehicle_reg,
+      status: row.status as "active" | "inactive",
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    }));
+  });
+
+export const createDriver = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator(
+    (input: {
+      fullName: string;
+      phone: string;
+      licenseNumber: string;
+      vehicleAssigned?: string;
+      vehicleReg?: string;
+    }) => input,
+  )
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireAdmin(context);
+
+    const { data: row, error } = await supabaseAdmin
+      .from("drivers")
+      .insert({
+        full_name: data.fullName.trim(),
+        phone: data.phone.trim(),
+        license_number: data.licenseNumber.trim(),
+        vehicle_assigned: (data.vehicleAssigned ?? "").trim(),
+        vehicle_reg: (data.vehicleReg ?? "").trim(),
+        status: "active",
+      })
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return row;
+  });
+
+export const updateDriverStatus = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator((input: { id: string; status: "active" | "inactive" }) => input)
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireAdmin(context);
+
+    const { error } = await supabaseAdmin
+      .from("drivers")
+      .update({ status: data.status })
+      .eq("id", data.id);
+
+    if (error) throw new Error(error.message);
+    return { ok: true };
+  });
+
+/* ============================================================
+   DRIVER PERIOD EARNINGS ENTRY & REPORTING
+============================================================ */
+
+export interface AdminDriverEarnings {
+  id: string;
+  driverId: string;
+  driverName?: string;
+  vehicleReg?: string;
+  periodStart: string;
+  periodEnd: string;
+  grossRevenueCents: number;
+  fuelAndTollCents: number;
+  maintenanceCents: number;
+  driverPayoutCents: number;
+  netFleetEarningsCents: number;
+  notes: string | null;
+  createdAt: string;
+}
+
+export const getAdminDriverEarnings = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }): Promise<AdminDriverEarnings[]> => {
+    const supabaseAdmin = await requireAdmin(context);
+
+    const { data: rows, error } = await supabaseAdmin
+      .from("driver_earnings")
+      .select("*, drivers:driver_id(full_name, vehicle_reg)")
+      .order("period_start", { ascending: false });
+
+    if (error) throw new Error(error.message);
+
+    return (rows ?? []).map((row: any) => ({
+      id: row.id,
+      driverId: row.driver_id,
+      driverName: row.drivers?.full_name ?? "Unknown",
+      vehicleReg: row.drivers?.vehicle_reg ?? "",
+      periodStart: row.period_start,
+      periodEnd: row.period_end,
+      grossRevenueCents: row.gross_revenue_cents,
+      fuelAndTollCents: row.fuel_and_toll_cents,
+      maintenanceCents: row.maintenance_cents,
+      driverPayoutCents: row.driver_payout_cents,
+      netFleetEarningsCents: row.net_fleet_earnings_cents,
+      notes: row.notes,
+      createdAt: row.created_at,
+    }));
+  });
+
+export const createPeriodEarnings = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
+  .validator(
+    (input: {
+      driverId: string;
+      periodStart: string;
+      periodEnd: string;
+      grossRevenueCents: number;
+      fuelAndTollCents: number;
+      maintenanceCents: number;
+      driverPayoutCents: number;
+      notes?: string;
+    }) => input,
+  )
+  .handler(async ({ data, context }) => {
+    const supabaseAdmin = await requireAdmin(context);
+
+    const netEarnings =
+      data.grossRevenueCents -
+      data.fuelAndTollCents -
+      data.maintenanceCents -
+      data.driverPayoutCents;
+
+    const { data: row, error } = await supabaseAdmin
+      .from("driver_earnings")
+      .insert({
+        driver_id: data.driverId,
+        period_start: data.periodStart,
+        period_end: data.periodEnd,
+        gross_revenue_cents: data.grossRevenueCents,
+        fuel_and_toll_cents: data.fuelAndTollCents,
+        maintenance_cents: data.maintenanceCents,
+        driver_payout_cents: data.driverPayoutCents,
+        net_fleet_earnings_cents: netEarnings,
+        notes: data.notes ?? null,
+      })
+      .select("*")
+      .single();
+
+    if (error) throw new Error(error.message);
+    return row;
+  });

@@ -1,9 +1,11 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { InvestmentSlider } from "@/components/investment-slider";
 import { SiteShell } from "@/components/site-shell";
 import { Button } from "@/components/ui/button";
 import { FadeIn } from "@/components/fade-in";
+import { supabase } from "@/integrations/supabase/client";
+import { takePendingAmount } from "@/lib/social-auth";
 import {
   clampInvestment,
   formatRand,
@@ -86,6 +88,31 @@ const STEPS = [
 function Index() {
   const navigate = useNavigate();
   const [amount, setAmount] = useState(500);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const hash = window.location.hash || "";
+    const search = window.location.search || "";
+    const isOAuthReturn =
+      hash.includes("access_token=") ||
+      hash.includes("refresh_token=") ||
+      search.includes("code=") ||
+      sessionStorage.getItem("motus:oauth-in-progress") === "true";
+
+    if (isOAuthReturn) {
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session?.user) {
+          sessionStorage.removeItem("motus:oauth-in-progress");
+          const pendingAmount = takePendingAmount();
+          navigate({
+            to: "/dashboard",
+            replace: true,
+            search: pendingAmount ? { amount: pendingAmount } : undefined,
+          });
+        }
+      });
+    }
+  }, [navigate]);
 
   const startInvestment = () => {
     navigate({ to: "/signup", search: { amount: clampInvestment(amount) } });

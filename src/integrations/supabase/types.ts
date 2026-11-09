@@ -7,13 +7,97 @@ export type Json =
   | Json[]
 
 export type Database = {
-  // Allows to automatically instantiate createClient with right options
-  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
     PostgrestVersion: "14.18"
   }
   public: {
     Tables: {
+      drivers: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+          license_number: string
+          phone: string
+          status: string
+          updated_at: string
+          vehicle_assigned: string
+          vehicle_reg: string
+        }
+        Insert: {
+          created_at?: string
+          full_name: string
+          id?: string
+          license_number: string
+          phone: string
+          status?: string
+          updated_at?: string
+          vehicle_assigned?: string
+          vehicle_reg?: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+          license_number?: string
+          phone?: string
+          status?: string
+          updated_at?: string
+          vehicle_assigned?: string
+          vehicle_reg?: string
+        }
+        Relationships: []
+      }
+      driver_earnings: {
+        Row: {
+          created_at: string
+          driver_id: string
+          driver_payout_cents: number
+          fuel_and_toll_cents: number
+          gross_revenue_cents: number
+          id: string
+          maintenance_cents: number
+          net_fleet_earnings_cents: number
+          notes: string | null
+          period_end: string
+          period_start: string
+        }
+        Insert: {
+          created_at?: string
+          driver_id: string
+          driver_payout_cents?: number
+          fuel_and_toll_cents?: number
+          gross_revenue_cents?: number
+          id?: string
+          maintenance_cents?: number
+          net_fleet_earnings_cents?: number
+          notes?: string | null
+          period_end: string
+          period_start: string
+        }
+        Update: {
+          created_at?: string
+          driver_id?: string
+          driver_payout_cents?: number
+          fuel_and_toll_cents?: number
+          gross_revenue_cents?: number
+          id?: string
+          maintenance_cents?: number
+          net_fleet_earnings_cents?: number
+          notes?: string | null
+          period_end?: string
+          period_start?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "driver_earnings_driver_id_fkey"
+            columns: ["driver_id"]
+            isOneToOne: false
+            referencedRelation: "drivers"
+            referencedColumns: ["id"]
+          }
+        ]
+      }
       investments: {
         Row: {
           amount_cents: number
@@ -59,6 +143,72 @@ export type Database = {
             referencedRelation: "profiles"
             referencedColumns: ["id"]
           },
+        ]
+      }
+      payout_requests: {
+        Row: {
+          account_holder: string
+          account_number: string
+          account_type: string
+          admin_notes: string | null
+          amount_cents: number
+          bank_name: string
+          branch_code: string
+          created_at: string
+          id: string
+          investment_id: string | null
+          processed_at: string | null
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_holder?: string
+          account_number: string
+          account_type?: string
+          admin_notes?: string | null
+          amount_cents: number
+          bank_name: string
+          branch_code?: string
+          created_at?: string
+          id?: string
+          investment_id?: string | null
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_holder?: string
+          account_number?: string
+          account_type?: string
+          admin_notes?: string | null
+          amount_cents?: number
+          bank_name?: string
+          branch_code?: string
+          created_at?: string
+          id?: string
+          investment_id?: string | null
+          processed_at?: string | null
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payout_requests_investment_id_fkey"
+            columns: ["investment_id"]
+            isOneToOne: false
+            referencedRelation: "investments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "payout_requests_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          }
         ]
       }
       payout_settings: {

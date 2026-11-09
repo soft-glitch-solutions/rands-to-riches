@@ -1,6 +1,7 @@
 import { lovable } from "@/integrations/lovable/index";
 
 export const PENDING_AMOUNT_KEY = "motus:pending-amount";
+export const OAUTH_REDIRECT_INTENT_KEY = "motus:oauth-in-progress";
 
 /** Remember an investment intent so the dashboard can pick it up after social sign-in. */
 export function savePendingAmount(amount: number) {
@@ -26,7 +27,20 @@ export function takePendingAmount(): number | null {
 }
 
 /** Where OAuth providers send users back to after sign-in. */
-const OAUTH_REDIRECT = `${window.location.origin}/dashboard`;
+export function getOAuthRedirect(): string {
+  if (typeof window !== "undefined" && window.location?.origin) {
+    return `${window.location.origin}/dashboard`;
+  }
+  return "/dashboard";
+}
+
+function markOAuthInProgress() {
+  try {
+    sessionStorage.setItem(OAUTH_REDIRECT_INTENT_KEY, "true");
+  } catch {
+    // ignore
+  }
+}
 
 async function handleSocialResult(
   result: Awaited<ReturnType<typeof lovable.auth.signInWithOAuth>>,
@@ -38,30 +52,33 @@ async function handleSocialResult(
 
 export function signInWithGoogle(amount?: number) {
   if (amount !== undefined) savePendingAmount(amount);
+  markOAuthInProgress();
 
   return lovable.auth
     .signInWithOAuth("google", {
-      redirect_uri: OAUTH_REDIRECT,
+      redirect_uri: getOAuthRedirect(),
     })
     .then(handleSocialResult);
 }
 
 export function signInWithApple(amount?: number) {
   if (amount !== undefined) savePendingAmount(amount);
+  markOAuthInProgress();
 
   return lovable.auth
     .signInWithOAuth("apple", {
-      redirect_uri: OAUTH_REDIRECT,
+      redirect_uri: getOAuthRedirect(),
     })
     .then(handleSocialResult);
 }
 
 export function signInWithFacebook(amount?: number) {
   if (amount !== undefined) savePendingAmount(amount);
+  markOAuthInProgress();
 
   return lovable.auth
     .signInWithOAuth("facebook", {
-      redirect_uri: OAUTH_REDIRECT,
+      redirect_uri: getOAuthRedirect(),
     })
     .then(handleSocialResult);
 }

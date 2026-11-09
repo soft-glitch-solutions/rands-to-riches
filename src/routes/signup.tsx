@@ -1,4 +1,4 @@
-import { createFileRoute, Link, useNavigate } from "@tanstack/react-router";
+import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -39,6 +39,15 @@ export const Route = createFileRoute("/signup")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  beforeLoad: async ({ search }) => {
+    const { data } = await supabase.auth.getUser();
+    if (data.user) {
+      throw redirect({
+        to: "/dashboard",
+        search: search.amount !== undefined ? { amount: search.amount } : undefined,
+      });
+    }
+  },
   component: SignupPage,
 });
 
@@ -131,7 +140,18 @@ function SignupPage() {
           ? await signInWithApple(amount)
           : await signInWithFacebook(amount);
     setSocialBusy(null);
-    if (err) setError(err);
+    if (err) {
+      setError(err);
+      return;
+    }
+    const { data } = await supabase.auth.getSession();
+    if (data.session) {
+      navigate({
+        to: "/dashboard",
+        replace: true,
+        ...(amount !== undefined ? { search: { amount } } : {}),
+      });
+    }
   };
 
   /* ---------- Confirmation screen (compact) ---------- */

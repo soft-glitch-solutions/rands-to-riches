@@ -20,6 +20,9 @@ import {
 import { isUserAdmin } from "@/server-fn/investments";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/site-shell";
+import { PayoutRequestsPanel } from "@/components/admin-payouts-panel";
+import { DriversFleetPanel } from "@/components/admin-drivers-panel";
+import { Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -35,14 +38,23 @@ export const Route = createFileRoute("/_authenticated/admin")({
   component: AdminPage,
 });
 
-type Tab = "overview" | "payments" | "investors" | "reports" | "settings";
+type Tab =
+  | "overview"
+  | "payments"
+  | "payouts"
+  | "drivers"
+  | "investors"
+  | "reports"
+  | "settings";
 
-const NAV: { id: Tab; label: string; icon: typeof Wallet }[] = [
+const NAV: { id: Tab; label: string; icon: any }[] = [
   { id: "overview", label: "Overview", icon: BarChart3 },
-  { id: "payments", label: "Payments", icon: ListChecks },
+  { id: "payments", label: "Deposits", icon: ListChecks },
+  { id: "payouts", label: "Payouts", icon: Wallet },
+  { id: "drivers", label: "Fleet & Drivers", icon: Car },
   { id: "investors", label: "Investors", icon: Users },
   { id: "reports", label: "Reports", icon: FileText },
-  { id: "settings", label: "Payout account", icon: Landmark },
+  { id: "settings", label: "Banking", icon: Landmark },
 ];
 
 /* ---------- Small UI ---------- */
@@ -1133,6 +1145,8 @@ function AdminPage() {
   const tabContent: Record<Tab, React.ReactNode> = {
     overview: overviewTab,
     payments: paymentsTab,
+    payouts: <PayoutRequestsPanel />,
+    drivers: <DriversFleetPanel />,
     investors: investorsTab,
     reports: reportsTab,
     settings: <PayoutSettingsPanel />,
@@ -1222,7 +1236,7 @@ function AdminPage() {
           className="fixed inset-x-0 bottom-0 z-30 border-t border-border bg-card/95 backdrop-blur"
           style={{ paddingBottom: "env(safe-area-inset-bottom)" }}
         >
-          <div className="mx-auto grid max-w-md grid-cols-4">
+          <div className="mx-auto flex items-center gap-1 max-w-md overflow-x-auto no-scrollbar px-2">
             {NAV.map((item) => {
               const active = tab === item.id;
               const Icon = item.icon;

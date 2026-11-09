@@ -1,7 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteShell } from "@/components/site-shell";
-import { Button } from "@/components/ui/button";
+import { buttonVariants } from "@/components/ui/button";
+import { FadeIn } from "@/components/fade-in";
 import {
   Search,
   ChevronDown,
@@ -11,22 +12,9 @@ import {
   CreditCard,
   Car,
   ArrowRight,
+  X,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
-
-export const Route = createFileRoute("/faq")({
-  head: () => ({
-    meta: [
-      { title: "Frequently Asked Questions — MOTUS Capital" },
-      {
-        name: "description",
-        content:
-          "Find answers to common questions about investing in MOTUS Capital, investment cycles, target returns, deposits, and payouts.",
-      },
-    ],
-  }),
-  component: FaqPage,
-});
 
 interface FaqItem {
   id: string;
@@ -130,6 +118,44 @@ const CATEGORIES = [
   { id: "account", label: "Account & Eligibility", Icon: ShieldCheck },
 ] as const;
 
+export const Route = createFileRoute("/faq")({
+  head: () => ({
+    meta: [
+      { title: "Frequently Asked Questions — MOTUS Capital Returns, Safety & Payouts" },
+      {
+        name: "description",
+        content:
+          "Find answers to all questions about investing in MOTUS Capital: 13%–25% returns, 30–90 day cycles, bank EFT withdrawals, and vehicle fleet security.",
+      },
+      { property: "og:title", content: "Frequently Asked Questions — MOTUS Capital" },
+      {
+        property: "og:description",
+        content:
+          "Learn how MOTUS Capital generates 13% to 25% returns on South African mobility and delivery fleets.",
+      },
+      { property: "og:url", content: "https://motuscapital.co.za/faq" },
+    ],
+    scripts: [
+      {
+        type: "application/ld+json",
+        children: JSON.stringify({
+          "@context": "https://schema.org",
+          "@type": "FAQPage",
+          "mainEntity": FAQ_DATA.map((item) => ({
+            "@type": "Question",
+            "name": item.question,
+            "acceptedAnswer": {
+              "@type": "Answer",
+              "text": item.answer.replace(/\n\n/g, " "),
+            },
+          })),
+        }),
+      },
+    ],
+  }),
+  component: FaqPage,
+});
+
 function FaqPage() {
   const [activeCategory, setActiveCategory] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -152,29 +178,41 @@ function FaqPage() {
   return (
     <SiteShell>
       {/* Hero */}
-      <section className="bg-secondary py-16 sm:py-20">
+      <section className="bg-secondary/70 py-16 sm:py-20 border-b border-border/60">
         <div className="mx-auto max-w-4xl px-4 text-center sm:px-6">
-          <span className="inline-block rounded-full bg-accent px-4 py-1.5 text-sm font-semibold text-accent-foreground">
+          <div className="inline-flex items-center gap-2 rounded-full bg-accent/80 px-4 py-1.5 text-xs font-semibold text-accent-foreground animate-fade-down shadow-xs">
+            <span className="size-2 rounded-full bg-brand-green" />
             Help & Knowledge Base
-          </span>
-          <h1 className="mt-4 font-display text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          </div>
+
+          <h1 className="mt-4 font-display text-4xl font-extrabold tracking-tight text-foreground sm:text-5xl animate-fade-up delay-100">
             Frequently Asked Questions
           </h1>
-          <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground sm:text-lg">
+
+          <p className="mx-auto mt-4 max-w-xl text-base text-muted-foreground sm:text-lg animate-fade-up delay-200">
             Everything you need to know about investing in the mobility economy,
             our 13%–25% returns, and how vehicles earn on the road.
           </p>
 
           {/* Search bar */}
-          <div className="relative mx-auto mt-8 max-w-xl">
+          <div className="relative mx-auto mt-8 max-w-xl animate-fade-up delay-300">
             <Search className="absolute left-4 top-1/2 size-5 -translate-y-1/2 text-muted-foreground" />
             <input
               type="text"
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               placeholder="Search questions (e.g. returns, payouts, vehicles)..."
-              className="w-full rounded-2xl border border-border bg-card py-3.5 pl-12 pr-4 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-sm"
+              className="w-full rounded-2xl border border-border bg-card py-3.5 pl-12 pr-10 text-sm font-medium text-foreground placeholder:text-muted-foreground focus:border-primary focus:outline-none focus:ring-2 focus:ring-primary/20 shadow-xs transition-all"
             />
+            {searchQuery && (
+              <button
+                type="button"
+                onClick={() => setSearchQuery("")}
+                className="absolute right-3.5 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
+              >
+                <X className="size-4" />
+              </button>
+            )}
           </div>
         </div>
       </section>
@@ -182,16 +220,16 @@ function FaqPage() {
       {/* Main FAQ Content */}
       <section className="mx-auto max-w-4xl px-4 py-12 sm:px-6">
         {/* Category Pills */}
-        <div className="flex flex-wrap items-center justify-center gap-2 pb-8">
+        <div className="flex flex-wrap items-center justify-center gap-2 pb-8 animate-fade-in delay-200">
           {CATEGORIES.map(({ id, label, Icon }) => (
             <button
               key={id}
               type="button"
               onClick={() => setActiveCategory(id)}
               className={cn(
-                "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs sm:text-sm font-semibold transition-all",
+                "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-xs sm:text-sm font-semibold transition-all cursor-pointer",
                 activeCategory === id
-                  ? "border-primary bg-primary text-primary-foreground shadow-sm"
+                  ? "border-primary bg-primary text-primary-foreground shadow-sm scale-105"
                   : "border-border bg-card text-muted-foreground hover:border-primary/50 hover:text-foreground",
               )}
             >
@@ -203,91 +241,107 @@ function FaqPage() {
 
         {/* FAQ Accordion List */}
         {filteredFaqs.length === 0 ? (
-          <div className="rounded-3xl border border-border bg-card p-10 text-center">
-            <HelpCircle className="mx-auto size-10 text-muted-foreground" />
-            <p className="mt-3 font-display text-lg font-bold text-foreground">
-              No questions found
-            </p>
-            <p className="mt-1 text-sm text-muted-foreground">
-              Try searching with different terms or select "All Questions".
-            </p>
-            <button
-              type="button"
-              onClick={() => {
-                setSearchQuery("");
-                setActiveCategory("all");
-              }}
-              className="mt-4 inline-flex items-center text-sm font-bold text-primary hover:underline"
-            >
-              Reset filters
-            </button>
-          </div>
+          <FadeIn direction="up">
+            <div className="rounded-3xl border border-border bg-card p-10 text-center shadow-xs">
+              <HelpCircle className="mx-auto size-10 text-muted-foreground" />
+              <p className="mt-3 font-display text-lg font-bold text-foreground">
+                No matching questions found
+              </p>
+              <p className="mt-1 text-sm text-muted-foreground">
+                Try searching with different terms or reset your filters.
+              </p>
+              <button
+                type="button"
+                onClick={() => {
+                  setSearchQuery("");
+                  setActiveCategory("all");
+                }}
+                className="mt-4 inline-flex items-center text-sm font-bold text-primary hover:underline cursor-pointer"
+              >
+                Reset filters
+              </button>
+            </div>
+          </FadeIn>
         ) : (
-          <div className="space-y-3">
-            {filteredFaqs.map((faq) => {
+          <div className="space-y-3.5">
+            {filteredFaqs.map((faq, index) => {
               const isOpen = openId === faq.id;
               return (
-                <div
-                  key={faq.id}
-                  className={cn(
-                    "rounded-2xl border bg-card transition-all duration-200",
-                    isOpen
-                      ? "border-primary/40 shadow-md shadow-primary/5 ring-1 ring-primary/20"
-                      : "border-border hover:border-border/80",
-                  )}
-                >
-                  <button
-                    type="button"
-                    onClick={() => toggleAccordion(faq.id)}
-                    className="flex w-full items-center justify-between gap-4 p-5 text-left"
-                    aria-expanded={isOpen}
+                <FadeIn key={faq.id} direction="up" delay={Math.min(index * 60, 400)}>
+                  <div
+                    className={cn(
+                      "rounded-2xl border bg-card transition-all duration-300",
+                      isOpen
+                        ? "border-primary/50 shadow-md shadow-primary/5 ring-1 ring-primary/20"
+                        : "border-border/80 hover:border-primary/40 hover:shadow-xs",
+                    )}
                   >
-                    <span className="font-display text-base sm:text-lg font-bold text-foreground">
-                      {faq.question}
-                    </span>
-                    <span
-                      className={cn(
-                        "flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-transform duration-200",
-                        isOpen && "rotate-180 bg-primary text-primary-foreground",
-                      )}
+                    <button
+                      type="button"
+                      onClick={() => toggleAccordion(faq.id)}
+                      className="flex w-full items-center justify-between gap-4 p-5 text-left cursor-pointer"
+                      aria-expanded={isOpen}
                     >
-                      <ChevronDown className="size-4" />
-                    </span>
-                  </button>
+                      <span className="font-display text-base sm:text-lg font-bold text-foreground">
+                        {faq.question}
+                      </span>
+                      <span
+                        className={cn(
+                          "flex size-8 shrink-0 items-center justify-center rounded-full bg-secondary text-foreground transition-transform duration-300",
+                          isOpen && "rotate-180 bg-primary text-primary-foreground",
+                        )}
+                      >
+                        <ChevronDown className="size-4" />
+                      </span>
+                    </button>
 
-                  {isOpen && (
-                    <div className="border-t border-border/50 px-5 pb-5 pt-3">
-                      <p className="whitespace-pre-line text-sm sm:text-base leading-relaxed text-muted-foreground">
-                        {faq.answer}
-                      </p>
-                    </div>
-                  )}
-                </div>
+                    {isOpen && (
+                      <div className="border-t border-border/50 px-5 pb-5 pt-3 animate-fade-in">
+                        <p className="whitespace-pre-line text-sm sm:text-base leading-relaxed text-muted-foreground">
+                          {faq.answer}
+                        </p>
+                      </div>
+                    )}
+                  </div>
+                </FadeIn>
               );
             })}
           </div>
         )}
 
         {/* Still have questions CTA */}
-        <div className="mt-14 rounded-3xl border border-primary/20 bg-secondary/60 p-8 text-center sm:p-10">
-          <h3 className="font-display text-2xl font-bold text-foreground">
-            Still have questions?
-          </h3>
-          <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
-            Can't find the answer you're looking for? Reach out directly to our
-            support team or test our interactive demo.
-          </p>
-          <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <Button asChild size="lg" className="rounded-2xl font-bold">
-              <Link to="/contact">
-                Contact our team <ArrowRight className="ml-2 size-4" />
+        <FadeIn direction="up" delay={200}>
+          <div className="mt-14 rounded-3xl border border-primary/20 bg-secondary/50 p-8 text-center sm:p-10 shadow-sm">
+            <h3 className="font-display text-2xl font-bold text-foreground">
+              Still have questions?
+            </h3>
+            <p className="mx-auto mt-2 max-w-md text-sm text-muted-foreground">
+              Can't find the answer you're looking for? Reach out directly to our
+              Johannesburg team or test our live interactive demo.
+            </p>
+            <div className="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <Link
+                to="/contact"
+                className={cn(
+                  buttonVariants({ size: "lg" }),
+                  "rounded-2xl font-bold gap-2 shadow-sm",
+                )}
+              >
+                <span>Contact our team</span>
+                <ArrowRight className="size-4" />
               </Link>
-            </Button>
-            <Button asChild variant="outline" size="lg" className="rounded-2xl font-bold">
-              <Link to="/demo">Try Investor Demo</Link>
-            </Button>
+              <Link
+                to="/demo"
+                className={cn(
+                  buttonVariants({ variant: "outline", size: "lg" }),
+                  "rounded-2xl font-semibold border-border hover:bg-card",
+                )}
+              >
+                Try Investor Demo
+              </Link>
+            </div>
           </div>
-        </div>
+        </FadeIn>
       </section>
     </SiteShell>
   );

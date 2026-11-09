@@ -4,11 +4,14 @@ import {
   Link,
   createRootRouteWithContext,
   useRouter,
+  useNavigate,
   HeadContent,
   Scripts,
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { supabase } from "@/integrations/supabase/client";
+import { takePendingAmount } from "@/lib/social-auth";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
@@ -208,6 +211,54 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const hash = window.location.hash || "";
+    const search = window.location.search || "";
+    const hasOAuthParams =
+      hash.includes("access_token=") ||
+      hash.includes("refresh_token=") ||
+      search.includes("code=") ||
+      search.includes("token=");
+    const hasOAuthIntent = sessionStorage.getItem("motus:oauth-in-progress") === "true";
+
+    const pathname = window.location.pathname;
+    const isAlreadyOnAuthRoute = pathname.startsWith("/dashboard") || pathname.startsWith("/admin");
+
+    if (hasOAuthParams || hasOAuthIntent) {
+      // If we just arrived from OAuth, make sure we direct the user to their dashboard
+      const handleRedirect = () => {
+        if (!isAlreadyOnAuthRoute) {
+          sessionStorage.removeItem("motus:oauth-in-progress");
+          const pendingAmount = takePendingAmount();
+          navigate({
+            to: "/dashboard",
+            replace: true,
+            search: pendingAmount ? { amount: pendingAmount } : undefined,
+          });
+        }
+      };
+
+      supabase.auth.getSession().then(({ data }) => {
+        if (data.session?.user) {
+          handleRedirect();
+        }
+      });
+
+      const { data: sub } = supabase.auth.onAuthStateChange((event, session) => {
+        if ((event === "SIGNED_IN" || event === "INITIAL_SESSION") && session?.user) {
+          handleRedirect();
+        }
+      });
+
+      return () => {
+        sub.subscription.unsubscribe();
+      };
+    }
+  }, [navigate]);
 
   return (
     <QueryClientProvider client={queryClient}>
