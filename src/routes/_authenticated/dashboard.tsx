@@ -148,6 +148,7 @@ function DashboardPage() {
   const handleWithdrawConfirm = (details: { bank: string; amountCents: number }) => {
     if (withdrawTarget) {
       setWithdrawnIds((prev) => [...prev, withdrawTarget.id]);
+      queryClient.invalidateQueries({ queryKey: ["my-investments"] });
       toast(`Payout of ${formatRandFromCents(details.amountCents)} requested.`, 5000);
     }
   };
@@ -160,8 +161,12 @@ function DashboardPage() {
   };
 
   const investments = data?.investments ?? [];
-  const stateOf = (inv: (typeof investments)[number]) =>
-    getInvestmentState(inv, withdrawnIds.includes(inv.id));
+  const stateOf = (inv: (typeof investments)[number]) => {
+    const hasActivePayout = data?.payoutRequests?.some(
+      (p) => p.investment_id === inv.id && (p.status === "pending" || p.status === "processing" || p.status === "completed")
+    );
+    return getInvestmentState(inv, withdrawnIds.includes(inv.id) || hasActivePayout);
+  };
   const sum = (state: ReturnType<typeof getInvestmentState>) =>
     investments.filter((i) => stateOf(i) === state).reduce((s, i) => s + i.amount_cents, 0);
 
@@ -509,6 +514,10 @@ function DashboardPage() {
         onClose={() => setWithdrawTarget(null)}
         onConfirm={handleWithdrawConfirm}
         investment={withdrawTarget}
+        defaultBank={data?.bankName}
+        defaultAccountHolder={data?.bankAccountHolder || data?.fullName}
+        defaultAccountNumber={data?.bankAccountNumber}
+        defaultBranchCode={data?.bankBranchCode}
       />
 
       {/* ===== MOBILE: curved bottom nav with animated active pill ===== */}
