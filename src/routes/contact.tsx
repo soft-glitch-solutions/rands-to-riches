@@ -1,3 +1,4 @@
+
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import { SiteShell } from "@/components/site-shell";
@@ -8,9 +9,8 @@ import {
   MapPin,
   Facebook,
   Instagram,
-  Twitter,
-  Linkedin,
-  MessageCircle,
+  Youtube,
+  Music2,
   Send,
   Clock,
 } from "lucide-react";
@@ -29,7 +29,7 @@ export const Route = createFileRoute("/contact")({
   component: ContactPage,
 });
 
-// TODO(owner): Update these contact details with real MOTUS Capital information.
+// Contact details
 const CONTACT_DETAILS = [
   {
     Icon: Mail,
@@ -57,7 +57,7 @@ const CONTACT_DETAILS = [
   },
 ];
 
-// TODO(owner): Point these at the real MOTUS Capital social pages.
+// Social media links
 const SOCIAL_LINKS = [
   {
     label: "Facebook",
@@ -72,22 +72,16 @@ const SOCIAL_LINKS = [
     color: "hover:bg-pink-600",
   },
   {
-    label: "X (Twitter)",
-    href: "https://x.com/motuscapital",
-    Icon: Twitter,
-    color: "hover:bg-sky-500",
+    label: "YouTube",
+    href: "https://www.youtube.com/@MotusCapital",
+    Icon: Youtube,
+    color: "hover:bg-red-600",
   },
   {
-    label: "LinkedIn",
-    href: "https://www.linkedin.com/company/motuscapital",
-    Icon: Linkedin,
-    color: "hover:bg-blue-700",
-  },
-  {
-    label: "WhatsApp",
-    href: "https://wa.me/27821234567",
-    Icon: MessageCircle,
-    color: "hover:bg-green-600",
+    label: "TikTok",
+    href: "https://www.tiktok.com/@motus.capital",
+    Icon: Music2,
+    color: "hover:bg-black",
   },
 ];
 
@@ -106,7 +100,7 @@ const FAQ_ITEMS = [
   },
   {
     q: "How do I contact support?",
-    a: "You can reach us via email, phone, or WhatsApp using the contact details on this page. We aim to respond within one business day.",
+    a: "You can reach us via email or phone using the contact details on this page. We aim to respond within one business day.",
   },
 ];
 
@@ -123,7 +117,8 @@ function ContactPage() {
     e.preventDefault();
     if (!name || !email || !message) return;
     setFormState("sending");
-    // Simulate a network call — replace with a real API call (e.g. Supabase Edge Function or EmailJS).
+
+    // Replace with a real API call.
     await new Promise((r) => setTimeout(r, 1200));
     setFormState("sent");
   };
@@ -273,11 +268,13 @@ function ContactPage() {
                 >
                   {formState === "sending" ? (
                     <>
-                      <Send className="mr-2 size-4 animate-pulse" /> Sending…
+                      <Send className="mr-2 size-4 animate-pulse" />
+                      Sending…
                     </>
                   ) : (
                     <>
-                      <Send className="mr-2 size-4" /> Send message
+                      <Send className="mr-2 size-4" />
+                      Send message
                     </>
                   )}
                 </Button>
