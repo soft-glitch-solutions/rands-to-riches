@@ -13,6 +13,7 @@ import {
   Car,
   ArrowRight,
   X,
+  Bike,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
@@ -108,6 +109,36 @@ const FAQ_DATA: FaqItem[] = [
     answer:
       "Yes! You can have multiple concurrent cycles. For example, you can have a 1-month R500 starter cycle running while also having a 3-month R5,000 growth cycle deployed in commercial fleet operations.",
   },
+
+  // Asset Pools
+  {
+    id: "pools-1",
+    category: "pools",
+    question: "What are Asset Pools and how are they different from regular investments?",
+    answer:
+      "Asset Pools are transparent vehicle-specific funding pools where multiple investors jointly fund a single physical vehicle asset — like a delivery motorcycle costing R13,000. Unlike regular investment cycles, each pool is tied to one identifiable vehicle. You can see the real-time progress bar fill from 0% to 100% as contributions flow in. Once fully funded, the vehicle is deployed to a vetted driver generating R600 per week in rental revenue, and your returns are paid in a single lump-sum at maturity.",
+  },
+  {
+    id: "pools-2",
+    category: "pools",
+    question: "What is the difference between Tier 1 (Retail Rider Pool) and Tier 2 (Fleet Partner Circle)?",
+    answer:
+      "Tier 1 — Retail Rider Pool: Entry from R100. Designed for everyday investors and community micro-allocations. Target returns are 13% to 25% over 30 to 90-day cycles. Great for building towards a full vehicle stake over multiple pools.\n\nTier 2 — Fleet Partner Circle: Higher capital commitment. Designed for investors who accelerate entire asset deployment blocks. Target returns are 35%. In exchange for the higher capital and lower administrative overhead per rand, Fleet Partners receive priority vehicle assignment, enhanced reporting, and faster pool deployment.",
+  },
+  {
+    id: "pools-3",
+    category: "pools",
+    question: "What happens when a pool reaches 100% funded?",
+    answer:
+      "When a pool hits 100% of its target, the funding phase automatically locks — no new contributions are accepted. The vehicle is then assigned to a vetted delivery driver who pays R600 per week in rental revenue. The investment term clock starts from this date, and at maturity (e.g. 30 or 60 days) every contributor receives their principal plus their tier-specific return percentage in a single lump-sum payout to their bank account.",
+  },
+  {
+    id: "pools-4",
+    category: "pools",
+    question: "How does the Share & Accelerate feature work?",
+    answer:
+      "Every pool has a unique shareable invite link you can generate from your dashboard. When you share it with friends or on social media, new contributors who join via your link help push the pool's progress bar toward 100% faster — getting everyone's vehicle deployed and earning sooner. It's a community-driven growth loop that benefits all pool participants.",
+  },
 ];
 
 const CATEGORIES = [
@@ -115,6 +146,7 @@ const CATEGORIES = [
   { id: "plans", label: "Plans & Returns", Icon: TrendingUp },
   { id: "payments", label: "Payments & Payouts", Icon: CreditCard },
   { id: "vehicles", label: "Vehicles & Fleet", Icon: Car },
+  { id: "pools", label: "Asset Pools", Icon: Bike },
   { id: "account", label: "Account & Eligibility", Icon: ShieldCheck },
 ] as const;
 

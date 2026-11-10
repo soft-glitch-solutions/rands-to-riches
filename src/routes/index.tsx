@@ -12,6 +12,7 @@ import {
 } from "@/lib/investment";
 import heroImage from "@/assets/motus-hero.jpg";
 import { ArrowRight, ShieldCheck, TrendingUp, Users, Car, CheckCircle2 } from "lucide-react";
+import { AssetPoolsSection } from "@/components/asset-pools-section";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -292,6 +293,9 @@ function Index() {
           </div>
         </div>
       </section>
+
+      {/* Asset Pools & Fleet Partner Section */}
+      <AssetPoolsSection />
 
       {/* How it Works Section */}
       <section className="mx-auto max-w-6xl px-4 py-16 sm:px-6 sm:py-24">

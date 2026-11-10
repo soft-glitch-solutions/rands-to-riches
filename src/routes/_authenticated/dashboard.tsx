@@ -17,6 +17,8 @@ import { DashboardAnalytics } from "@/components/dashboard-analytics";
 import { WithdrawModal } from "@/components/withdraw-modal";
 import { PaymentInstructions } from "@/components/payment-instructions";
 import { ProfilePanel } from "@/components/profile-panel";
+import { DashboardPoolsTab } from "@/components/dashboard-pools-tab";
+import { Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   InvestmentPlan, PLAN_CONFIGS, formatDate, formatRand,
@@ -67,11 +69,12 @@ function StatTile({
   );
 }
 
-type Tab = "invest" | "cycles" | "analytics" | "account";
+type Tab = "invest" | "pools" | "cycles" | "analytics" | "account";
 
 const NAV_ITEMS: { id: Tab; label: string; icon: typeof Wallet }[] = [
   { id: "invest", label: "Invest", icon: Wallet },
   { id: "cycles", label: "Cycles", icon: ListChecks },
+  { id: "pools", label: "Pools", icon: Layers },
   { id: "analytics", label: "Analytics", icon: Activity },
   { id: "account", label: "Account", icon: User },
 ];
@@ -458,6 +461,7 @@ function DashboardPage() {
         {cyclesList}
       </div>
     ),
+    pools: <DashboardPoolsTab />,
     analytics: <DashboardAnalytics />,
     account: isLoading ? <ProfileSkeleton /> : profileCard,
   };
@@ -536,7 +540,7 @@ function DashboardPage() {
           {/* Curved floating container */}
           <div className="mx-auto max-w-md px-3 pb-3">
             <div className="relative rounded-[28px] border border-border/70 bg-card/95 shadow-[0_-4px_24px_-6px_rgba(0,0,0,0.12)] backdrop-blur-xl">
-              <div className="grid grid-cols-4 p-1.5">
+              <div className="grid grid-cols-5 p-1.5">
                 {NAV_ITEMS.map((item) => {
                   const active = tab === item.id;
                   const Icon = item.icon;

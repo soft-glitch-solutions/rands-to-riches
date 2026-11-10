@@ -22,6 +22,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/site-shell";
 import { PayoutRequestsPanel } from "@/components/admin-payouts-panel";
 import { DriversFleetPanel } from "@/components/admin-drivers-panel";
+import { AssetPoolsAdminPanel } from "@/components/admin-asset-pools-panel";
+import { LayoutGrid } from "lucide-react";
 import { Car } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -45,6 +47,7 @@ type Tab =
   | "drivers"
   | "investors"
   | "reports"
+  | "pools"
   | "settings";
 
 const NAV: { id: Tab; label: string; icon: any }[] = [
@@ -54,6 +57,7 @@ const NAV: { id: Tab; label: string; icon: any }[] = [
   { id: "drivers", label: "Fleet & Drivers", icon: Car },
   { id: "investors", label: "Investors", icon: Users },
   { id: "reports", label: "Reports", icon: FileText },
+  { id: "pools", label: "Asset Pools", icon: LayoutGrid },
   { id: "settings", label: "Banking", icon: Landmark },
 ];
 
@@ -1147,6 +1151,7 @@ function AdminPage() {
     payments: paymentsTab,
     payouts: <PayoutRequestsPanel />,
     drivers: <DriversFleetPanel />,
+    pools: <AssetPoolsAdminPanel />,
     investors: investorsTab,
     reports: reportsTab,
     settings: <PayoutSettingsPanel />,

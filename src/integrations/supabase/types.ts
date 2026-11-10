@@ -12,6 +12,78 @@ export type Database = {
   }
   public: {
     Tables: {
+      asset_pools: {
+        Row: {
+          created_at: string
+          current_amount_cents: number
+          description: string
+          driver_id: string | null
+          funded_at: string | null
+          id: string
+          image_url: string | null
+          matures_at: string | null
+          min_contribution_cents: number
+          return_rate_pct: number
+          share_code: string | null
+          status: string
+          target_amount_cents: number
+          term_days: number
+          tier: string
+          title: string
+          updated_at: string
+          vehicle_model: string
+          vehicle_reg: string
+          vehicle_type: string
+          weekly_rental_revenue_cents: number
+        }
+        Insert: {
+          created_at?: string
+          current_amount_cents?: number
+          description?: string
+          driver_id?: string | null
+          funded_at?: string | null
+          id?: string
+          image_url?: string | null
+          matures_at?: string | null
+          min_contribution_cents?: number
+          return_rate_pct?: number
+          share_code?: string | null
+          status?: string
+          target_amount_cents: number
+          term_days?: number
+          tier?: string
+          title: string
+          updated_at?: string
+          vehicle_model?: string
+          vehicle_reg?: string
+          vehicle_type?: string
+          weekly_rental_revenue_cents?: number
+        }
+        Update: {
+          created_at?: string
+          current_amount_cents?: number
+          description?: string
+          driver_id?: string | null
+          funded_at?: string | null
+          id?: string
+          image_url?: string | null
+          matures_at?: string | null
+          min_contribution_cents?: number
+          return_rate_pct?: number
+          share_code?: string | null
+          status?: string
+          target_amount_cents?: number
+          term_days?: number
+          tier?: string
+          title?: string
+          updated_at?: string
+          vehicle_model?: string
+          vehicle_reg?: string
+          vehicle_type?: string
+          weekly_rental_revenue_cents?: number
+        }
+        Relationships: []
+      }
       drivers: {
         Row: {
           created_at: string
@@ -45,6 +117,48 @@ export type Database = {
           updated_at?: string
           vehicle_assigned?: string
           vehicle_reg?: string
+        }
+        Relationships: []
+      }
+      pool_contributions: {
+        Row: {
+          amount_cents: number
+          created_at: string
+          id: string
+          matures_at: string | null
+          payment_reference: string | null
+          payout_amount_cents: number | null
+          pool_id: string
+          status: string
+          tier: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount_cents: number
+          created_at?: string
+          id?: string
+          matures_at?: string | null
+          payment_reference?: string | null
+          payout_amount_cents?: number | null
+          pool_id: string
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount_cents?: number
+          created_at?: string
+          id?: string
+          matures_at?: string | null
+          payment_reference?: string | null
+          payout_amount_cents?: number | null
+          pool_id?: string
+          status?: string
+          tier?: string
+          updated_at?: string
+          user_id?: string
         }
         Relationships: []
       }
