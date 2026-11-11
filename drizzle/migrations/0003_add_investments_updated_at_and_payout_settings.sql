@@ -29,13 +29,21 @@ CREATE TABLE public.payout_settings (
   updated_at timestamptz NOT NULL DEFAULT now()
 );
 
-GRANT SELECT ON public.payout_settings TO authenticated;
+REVOKE SELECT ON public.payout_settings FROM authenticated;
+REVOKE INSERT, UPDATE, DELETE ON public.payout_settings FROM authenticated;
 GRANT ALL ON public.payout_settings TO service_role;
 
 ALTER TABLE public.payout_settings ENABLE ROW LEVEL SECURITY;
 
-CREATE POLICY "Signed-in investors can see payout details"
+CREATE POLICY "payout_settings_select_single_row"
   ON public.payout_settings
   FOR SELECT
   TO authenticated
-  USING (true);
+  USING (id = 1);
+
+CREATE POLICY "payout_settings_update_admin_only"
+  ON public.payout_settings
+  FOR UPDATE
+  TO authenticated
+  USING (public.has_role(auth.uid(), 'admin'))
+  WITH CHECK (public.has_role(auth.uid(), 'admin'));
