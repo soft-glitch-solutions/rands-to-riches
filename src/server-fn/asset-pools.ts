@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { requireSupabaseAuth } from "@/integrations/supabase/auth-middleware";
 import { getSupabaseServerClient } from "@/integrations/supabase/server";
 import { isUserAdmin } from "./investments";
 
@@ -41,27 +42,25 @@ export const getAssetPool = createServerFn({ method: "GET" })
 
 // ─── Authenticated: my pool contributions ──────────────────────────────────
 
-export const getMyPoolContributions = createServerFn({ method: "GET" }).handler(async () => {
-  const client = await getSupabaseServerClient();
-  const {
-    data: { user },
-    error: authErr,
-  } = await client.auth.getUser();
-  if (authErr || !user) throw new Error("Not authenticated");
+export const getMyPoolContributions = createServerFn({ method: "GET" })
+  .middleware([requireSupabaseAuth])
+  .handler(async ({ context }) => {
+    const { supabase, userId } = context;
 
-  const { data, error } = await client
-    .from("pool_contributions")
-    .select("*, asset_pools(id, title, status, target_amount_cents, current_amount_cents, return_rate_pct, term_days, vehicle_model, image_url)")
-    .eq("user_id", user.id)
-    .order("created_at", { ascending: false });
+    const { data, error } = await supabase
+      .from("pool_contributions")
+      .select("*, asset_pools(id, title, status, target_amount_cents, current_amount_cents, return_rate_pct, term_days, vehicle_model, image_url)")
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false });
 
-  if (error) throw new Error(error.message);
-  return data ?? [];
-});
+    if (error) throw new Error(error.message);
+    return data ?? [];
+  });
 
 // ─── Authenticated: contribute to pool ─────────────────────────────────────
 
 export const contributeToPool = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator(
     z.object({
       poolId: z.string().uuid(),
@@ -69,16 +68,11 @@ export const contributeToPool = createServerFn({ method: "POST" })
       tier: z.enum(["retail", "partner"]),
     })
   )
-  .handler(async ({ data: { poolId, amountCents, tier } }) => {
-    const client = await getSupabaseServerClient();
-    const {
-      data: { user },
-      error: authErr,
-    } = await client.auth.getUser();
-    if (authErr || !user) throw new Error("Not authenticated");
+  .handler(async ({ data: { poolId, amountCents, tier }, context }) => {
+    const { supabase, userId } = context;
 
     // Fetch pool to validate
-    const { data: pool, error: poolErr } = await client
+    const { data: pool, error: poolErr } = await supabase
       .from("asset_pools")
       .select("*")
       .eq("id", poolId)
@@ -91,11 +85,11 @@ export const contributeToPool = createServerFn({ method: "POST" })
 
     const paymentRef = `POOL-${randCode()}`;
 
-    const { data: contrib, error: insertErr } = await client
+    const { data: contrib, error: insertErr } = await supabase
       .from("pool_contributions")
       .insert({
         pool_id: poolId,
-        user_id: user.id,
+        user_id: userId,
         amount_cents: amountCents,
         tier,
         status: "pending",
@@ -111,16 +105,13 @@ export const contributeToPool = createServerFn({ method: "POST" })
 // ─── Share link generation ──────────────────────────────────────────────────
 
 export const generateShareLink = createServerFn({ method: "POST" })
+  .middleware([requireSupabaseAuth])
   .validator(z.object({ poolId: z.string().uuid() }))
-  .handler(async ({ data: { poolId } }) => {
-    const client = await getSupabaseServerClient();
-    const {
-      data: { user },
-    } = await client.auth.getUser();
-    if (!user) throw new Error("Not authenticated");
+  .handler(async ({ data: { poolId }, context }) => {
+    const { supabase } = context;
 
     // Get or create share_code
-    const { data: pool } = await client
+    const { data: pool } = await supabase
       .from("asset_pools")
       .select("share_code")
       .eq("id", poolId)
@@ -131,7 +122,7 @@ export const generateShareLink = createServerFn({ method: "POST" })
     let code = pool.share_code;
     if (!code) {
       code = `${randCode()}-${randCode()}`;
-      await client
+      await supabase
         .from("asset_pools")
         .update({ share_code: code })
         .eq("id", poolId);

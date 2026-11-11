@@ -1,6 +1,6 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useServerFn } from "@tanstack/react-start";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import {
   adminGetAllPools,
   adminGetPoolContributions,
@@ -19,6 +19,7 @@ import {
   CheckCircle2, XCircle, Loader2, PlusCircle, ChevronDown, ChevronUp,
   Bike, Car, Share2, TrendingUp,
 } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 function ProgressBar({ pct }: { pct: number }) {
   const clamped = Math.min(100, Math.max(0, pct));
@@ -250,8 +251,12 @@ function PoolCard({ pool, refetch }: { pool: any; refetch: () => void }) {
 
 function CreatePoolForm({ onDone }: { onDone: () => void }) {
   const createPool = useServerFn(adminCreatePool);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [busy, setBusy] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
   const [err, setErr] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState("");
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "",
     description: "",
@@ -266,6 +271,55 @@ function CreatePoolForm({ onDone }: { onDone: () => void }) {
 
   const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
     setForm((p) => ({ ...p, [key]: e.target.value }));
+
+  const uploadVehicleImage = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setErr("Please choose an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErr("Image must be 5 MB or smaller.");
+      return;
+    }
+
+    setErr(null);
+    setUploadingImage(true);
+    try {
+      const safeName = file.name.replace(/\s+/g, "-").toLowerCase();
+      const path = `vehicle-images/${Date.now()}-${safeName}`;
+
+      const firstBucket = "vehicle-images";
+      const { error: uploadError } = await supabase.storage
+        .from(firstBucket)
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      let finalBucket = firstBucket;
+      let publicUrl = "";
+
+      if (uploadError) {
+        const fallbackBucket = "avatars";
+        const fallbackResult = await supabase.storage
+          .from(fallbackBucket)
+          .upload(path, file, { upsert: true, contentType: file.type });
+        if (fallbackResult.error) throw new Error(fallbackResult.error.message);
+        finalBucket = fallbackBucket;
+      }
+
+      const { data } = supabase.storage.from(finalBucket).getPublicUrl(path);
+      const url = `${data.publicUrl}?v=${Date.now()}`;
+      setImageUrl(url);
+      setImagePreview(url);
+      publicUrl = url;
+      return publicUrl;
+    } catch (ex) {
+      setErr(ex instanceof Error ? ex.message : "Image upload failed.");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+    return "";
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -285,6 +339,7 @@ function CreatePoolForm({ onDone }: { onDone: () => void }) {
           termDays: parseInt(form.termDays),
           returnRatePct: parseFloat(form.returnRatePct),
           weeklyRentalRevenueCents: 60000,
+          imageUrl: imageUrl || undefined,
         },
       });
       onDone();
@@ -353,6 +408,42 @@ function CreatePoolForm({ onDone }: { onDone: () => void }) {
         <div className="sm:col-span-2 space-y-1">
           <Label htmlFor="p-desc">Description</Label>
           <Input id="p-desc" value={form.description} onChange={set("description")} placeholder="Short description of the asset pool…" />
+        </div>
+
+        <div className="sm:col-span-2 space-y-2">
+          <Label htmlFor="p-image">Bike photo</Label>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              id="p-image"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Paste a public image URL or upload a real bike photo"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+            >
+              {uploadingImage ? <Loader2 className="size-3.5 animate-spin" /> : "Upload"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => uploadVehicleImage(e.target.files?.[0])}
+            />
+          </div>
+          {imagePreview && (
+            <img
+              src={imagePreview}
+              alt="Asset preview"
+              className="h-32 w-full rounded-xl border border-border object-cover"
+            />
+          )}
         </div>
       </div>
 

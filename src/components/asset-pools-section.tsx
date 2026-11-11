@@ -40,7 +40,7 @@ function PoolCard({ pool, index = 0, delay = 0 }: { pool: any; index?: number; d
   const raised = Number(pool.current_amount_cents ?? 0);
   const pct = total > 0 ? Math.min(100, Math.round((raised / total) * 100)) : 0;
   const Icon = pool.vehicle_type === "vehicle" ? Car : Bike;
-  const imageUrl = pool.image_url || FALLBACK_IMAGES[index % FALLBACK_IMAGES.length];
+  const imageUrl = pool.image_url?.trim() ? pool.image_url : null;
 
   return (
     <FadeIn direction="up" delay={delay}>
@@ -51,11 +51,17 @@ function PoolCard({ pool, index = 0, delay = 0 }: { pool: any; index?: number; d
           : "border-border/70 hover:border-primary/40 hover:shadow-primary/10"
       )}>
         <div className="relative h-48 overflow-hidden">
-          <img
-            src={imageUrl}
-            alt={pool.title || "Listed MOTUS Capital asset"}
-            className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
-          />
+          {imageUrl ? (
+            <img
+              src={imageUrl}
+              alt={pool.title || "Listed MOTUS Capital asset"}
+              className="h-full w-full object-cover transition-transform duration-700 group-hover:scale-105"
+            />
+          ) : (
+            <div className="flex h-full items-center justify-center bg-gradient-to-br from-secondary via-background to-primary/5">
+              <Bike className={cn("size-14", isPartner ? "text-brand-green/70" : "text-primary/70")} />
+            </div>
+          )}
           <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-black/10 to-transparent" />
           <div className="absolute left-3 top-3 inline-flex items-center gap-1.5 rounded-full bg-white/90 px-2.5 py-1 text-[10px] font-bold uppercase tracking-wider text-foreground shadow-sm backdrop-blur-sm">
             {isPartner ? <Star className="size-3 text-brand-green" /> : <Bike className="size-3 text-primary" />}
@@ -239,9 +245,18 @@ export function AssetPoolsSection() {
           </FadeIn>
 
           {isLoading ? (
-            <div className="flex items-center justify-center rounded-3xl border border-border bg-card py-12 text-muted-foreground">
-              <Loader2 className="mr-2 size-5 animate-spin" />
-              Loading listed vehicles…
+            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+              {Array.from({ length: 3 }).map((_, index) => (
+                <div key={index} className="overflow-hidden rounded-3xl border border-border bg-card shadow-sm">
+                  <div className="h-48 w-full animate-pulse bg-secondary/80" />
+                  <div className="space-y-3 p-5">
+                    <div className="h-4 w-2/3 animate-pulse rounded bg-secondary/80" />
+                    <div className="h-3 w-1/2 animate-pulse rounded bg-secondary/70" />
+                    <div className="h-3 w-full animate-pulse rounded bg-secondary/70" />
+                    <div className="h-3 w-5/6 animate-pulse rounded bg-secondary/70" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : visiblePools.length === 0 ? (
             <div className="rounded-3xl border border-dashed border-border bg-card p-8 text-center text-muted-foreground">
