@@ -21,4 +21,10 @@ describe("App routing", () => {
     expect(router.matchRoutes("/terms").at(-1)?.routeId).not.toBe(rootRouteId);
     expect(router.matchRoutes("/privacy").at(-1)?.routeId).not.toBe(rootRouteId);
   });
+
+  it("matches the public pool landing page without falling back to not found", () => {
+    const router = createRouter({ routeTree, context: { queryClient: new QueryClient() } });
+
+    expect(router.matchRoutes("/pools").at(-1)?.routeId).not.toBe(rootRouteId);
+  });
 });

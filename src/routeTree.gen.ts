@@ -17,6 +17,7 @@ import { Route as AuthRouteImport } from './routes/auth'
 import { Route as ContactRouteImport } from './routes/contact'
 import { Route as DemoRouteImport } from './routes/demo'
 import { Route as FaqRouteImport } from './routes/faq'
+import { Route as PoolsRouteImport } from './routes/pools'
 import { Route as PrivacyRouteImport } from './routes/privacy'
 import { Route as SignupRouteImport } from './routes/signup'
 import { Route as TermsRouteImport } from './routes/terms'
@@ -62,6 +63,11 @@ const FaqRoute = FaqRouteImport.update({
   path: '/faq',
   getParentRoute: () => rootRouteImport,
 } as any)
+const PoolsRoute = PoolsRouteImport.update({
+  id: '/pools',
+  path: '/pools',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const PrivacyRoute = PrivacyRouteImport.update({
   id: '/privacy',
   path: '/privacy',
@@ -96,6 +102,7 @@ export interface FileRoutesByFullPath {
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/faq': typeof FaqRoute
+  '/pools': typeof PoolsRoute
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
@@ -110,6 +117,7 @@ export interface FileRoutesByTo {
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/faq': typeof FaqRoute
+  '/pools': typeof PoolsRoute
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
@@ -126,6 +134,7 @@ export interface FileRoutesById {
   '/contact': typeof ContactRoute
   '/demo': typeof DemoRoute
   '/faq': typeof FaqRoute
+  '/pools': typeof PoolsRoute
   '/privacy': typeof PrivacyRoute
   '/signup': typeof SignupRoute
   '/terms': typeof TermsRoute
@@ -142,6 +151,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/demo'
     | '/faq'
+    | '/pools'
     | '/privacy'
     | '/signup'
     | '/terms'
@@ -156,6 +166,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/demo'
     | '/faq'
+    | '/pools'
     | '/privacy'
     | '/signup'
     | '/terms'
@@ -171,6 +182,7 @@ export interface FileRouteTypes {
     | '/contact'
     | '/demo'
     | '/faq'
+    | '/pools'
     | '/privacy'
     | '/signup'
     | '/terms'
@@ -187,6 +199,7 @@ export interface RootRouteChildren {
   ContactRoute: typeof ContactRoute
   DemoRoute: typeof DemoRoute
   FaqRoute: typeof FaqRoute
+  PoolsRoute: typeof PoolsRoute
   PrivacyRoute: typeof PrivacyRoute
   SignupRoute: typeof SignupRoute
   TermsRoute: typeof TermsRoute
@@ -250,6 +263,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof FaqRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/pools': {
+      id: '/pools'
+      path: '/pools'
+      fullPath: '/pools'
+      preLoaderRoute: typeof PoolsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/privacy': {
       id: '/privacy'
       path: '/privacy'
@@ -310,6 +330,7 @@ const rootRouteChildren: RootRouteChildren = {
   ContactRoute: ContactRoute,
   DemoRoute: DemoRoute,
   FaqRoute: FaqRoute,
+  PoolsRoute: PoolsRoute,
   PrivacyRoute: PrivacyRoute,
   SignupRoute: SignupRoute,
   TermsRoute: TermsRoute,

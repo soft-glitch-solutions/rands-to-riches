@@ -10,6 +10,17 @@ function randCode() {
   return Math.random().toString(36).slice(2, 10).toUpperCase();
 }
 
+function getShareReferrerId(code?: string | null) {
+  const trimmed = code?.trim();
+  if (!trimmed) return null;
+
+  const idx = trimmed.lastIndexOf("-");
+  if (idx <= 0) return null;
+
+  const candidate = trimmed.slice(0, idx);
+  return /^[0-9a-fA-F-]{36}$/.test(candidate) ? candidate : null;
+}
+
 // ─── Public: list all open/active pools ────────────────────────────────────
 
 export const getAssetPools = createServerFn({ method: "GET" }).handler(async () => {
@@ -108,9 +119,8 @@ export const generateShareLink = createServerFn({ method: "POST" })
   .middleware([requireSupabaseAuth])
   .validator(z.object({ poolId: z.string().uuid() }))
   .handler(async ({ data: { poolId }, context }) => {
-    const { supabase } = context;
+    const { supabase, userId } = context;
 
-    // Get or create share_code
     const { data: pool } = await supabase
       .from("asset_pools")
       .select("share_code")
@@ -120,8 +130,8 @@ export const generateShareLink = createServerFn({ method: "POST" })
     if (!pool) throw new Error("Pool not found");
 
     let code = pool.share_code;
-    if (!code) {
-      code = `${randCode()}-${randCode()}`;
+    if (!code || !code.startsWith(`${userId}-`)) {
+      code = `${userId}-${randCode()}`;
       await supabase
         .from("asset_pools")
         .update({ share_code: code })
@@ -133,7 +143,54 @@ export const generateShareLink = createServerFn({ method: "POST" })
         ? window.location.origin
         : "https://motuscapital.co.za";
 
-    return { shareUrl: `${baseUrl}/pools?ref=${code}&pool=${poolId}` };
+    return { shareUrl: `${baseUrl}/pools?ref=${encodeURIComponent(code)}&pool=${encodeURIComponent(poolId)}` };
+  });
+
+export const getPoolShareLandingPage = createServerFn({ method: "GET" })
+  .validator(z.object({ poolId: z.string().uuid().optional(), refCode: z.string().optional() }))
+  .handler(async ({ data }) => {
+    const client = await getSupabaseServerClient();
+    const poolId = data.poolId;
+    const refCode = data.refCode;
+
+    let pool: any = null;
+    if (poolId) {
+      const { data: poolRow, error } = await client
+        .from("asset_pools")
+        .select("*")
+        .eq("id", poolId)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      pool = poolRow;
+    }
+
+    if (!pool && refCode) {
+      const { data: poolRow, error } = await client
+        .from("asset_pools")
+        .select("*")
+        .eq("share_code", refCode)
+        .maybeSingle();
+
+      if (error) throw new Error(error.message);
+      pool = poolRow;
+    }
+
+    if (!pool) throw new Error("Pool not found.");
+
+    let referrer: { id: string; full_name: string | null; avatar_url: string | null } | null = null;
+    const referrerId = getShareReferrerId(refCode);
+    if (referrerId) {
+      const { data: profile, error } = await client
+        .from("profiles")
+        .select("id, full_name, avatar_url")
+        .eq("id", referrerId)
+        .maybeSingle();
+
+      if (!error && profile) referrer = profile;
+    }
+
+    return { pool, referrer };
   });
 
 // ═══════════════════════════════════════════════════════════════════════════

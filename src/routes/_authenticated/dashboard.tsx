@@ -18,6 +18,7 @@ import { WithdrawModal } from "@/components/withdraw-modal";
 import { PaymentInstructions } from "@/components/payment-instructions";
 import { ProfilePanel } from "@/components/profile-panel";
 import { DashboardPoolsTab } from "@/components/dashboard-pools-tab";
+import { getMyPoolContributions } from "@/server-fn/asset-pools";
 import { Layers } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
@@ -83,6 +84,7 @@ function DashboardPage() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const fetchInvestments = useServerFn(getMyInvestments);
+  const fetchPoolContribs = useServerFn(getMyPoolContributions);
   const startInvestment = useServerFn(createInvestment);
   const checkAdmin = useServerFn(isUserAdmin);
 
@@ -111,6 +113,10 @@ function DashboardPage() {
   const { data, isLoading } = useQuery({
     queryKey: ["my-investments"],
     queryFn: fetchInvestments,
+  });
+  const { data: poolContribs = [], isLoading: poolContribsLoading } = useQuery({
+    queryKey: ["my-pool-contributions"],
+    queryFn: fetchPoolContribs,
   });
   const { data: isAdmin } = useQuery({
     queryKey: ["is-admin"],
@@ -264,7 +270,7 @@ function DashboardPage() {
   );
 
   const cyclesList = (
-    <section className="space-y-3">
+    <section className="space-y-4">
       <div className="flex items-baseline justify-between">
         <h2 className="font-display text-base font-bold text-foreground sm:text-lg">
           Your cycles
@@ -380,6 +386,65 @@ function DashboardPage() {
               </div>
             );
           })}
+        </div>
+      )}
+
+      {poolContribs.length > 0 && (
+        <div className="space-y-2.5 pt-2">
+          <div className="flex items-center justify-between">
+            <h3 className="font-display text-sm font-bold text-foreground">
+              Pool stakes
+            </h3>
+            <span className="text-[11px] text-muted-foreground">
+              {poolContribs.length} active
+            </span>
+          </div>
+
+          {poolContribsLoading ? (
+            <div className="flex items-center gap-2 py-3 text-sm text-muted-foreground">
+              <Loader2 className="size-4 animate-spin" /> Loading pool stakes…
+            </div>
+          ) : (
+            poolContribs.map((contrib: any) => {
+              const pool = contrib.asset_pools;
+              const funded = pool?.target_amount_cents > 0
+                ? Math.round((pool.current_amount_cents / pool.target_amount_cents) * 100)
+                : 0;
+
+              return (
+                <div key={contrib.id} className="rounded-2xl border border-border bg-card p-3.5">
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-display text-sm font-bold text-foreground truncate">
+                        {pool?.title ?? "Pool stake"}
+                      </p>
+                      <p className="text-[10px] text-muted-foreground">
+                        Ref: {contrib.payment_reference ?? "—"}
+                      </p>
+                    </div>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-amber-500/30 bg-amber-500/10 px-2 py-0.5 text-[10px] font-bold uppercase text-amber-700">
+                      <Clock className="size-3" /> {contrib.status}
+                    </span>
+                  </div>
+
+                  {pool && (
+                    <div className="space-y-2">
+                      <div className="h-2.5 w-full overflow-hidden rounded-full bg-secondary">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${Math.min(100, funded)}%` }}
+                        />
+                      </div>
+                      <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+                        <span>{formatRandFromCents(contrib.amount_cents)} staked</span>
+                        <span>{funded}% funded</span>
+                      </div>
+                    </div>
+                  )}
+                </div>
+              );
+            })
+          )}
         </div>
       )}
     </section>
