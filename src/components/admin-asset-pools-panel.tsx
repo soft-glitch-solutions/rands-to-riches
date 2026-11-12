@@ -153,11 +153,17 @@ function PoolCard({ pool, refetch }: { pool: any; refetch: () => void }) {
   const qc = useQueryClient();
   const maturePool = useServerFn(adminMaturePool);
   const [expanded, setExpanded] = useState(false);
+  const [editing, setEditing] = useState(false);
   const [maturing, setMaturing] = useState(false);
 
   const pct = pool.target_amount_cents > 0
     ? Math.round((pool.current_amount_cents / pool.target_amount_cents) * 100)
     : 0;
+
+  const openLandingPage = () => {
+    const url = `/pools?pool=${encodeURIComponent(pool.id)}`;
+    window.open(url, "_blank", "noopener,noreferrer");
+  };
 
   const handleMature = async () => {
     setMaturing(true);
@@ -223,6 +229,24 @@ function PoolCard({ pool, refetch }: { pool: any; refetch: () => void }) {
             {expanded ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />}
             Contributions
           </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1 text-xs"
+            onClick={openLandingPage}
+          >
+            <Share2 className="size-3" />
+            Open page
+          </Button>
+          <Button
+            size="sm"
+            variant="outline"
+            className="h-7 gap-1 text-xs"
+            onClick={() => setEditing(true)}
+          >
+            <TrendingUp className="size-3" />
+            Edit
+          </Button>
           {pool.status === "active" && (
             <Button
               size="sm"
@@ -238,7 +262,13 @@ function PoolCard({ pool, refetch }: { pool: any; refetch: () => void }) {
         </div>
       </div>
 
-      {expanded && (
+      {editing && (
+        <div className="border-t border-border bg-secondary/20 px-4 pb-4 sm:px-5">
+          <EditPoolForm pool={pool} onDone={() => { setEditing(false); refetch(); qc.invalidateQueries({ queryKey: ["admin-all-pools"] }); }} />
+        </div>
+      )}
+
+      {expanded && !editing && (
         <div className="border-t border-border bg-secondary/20 px-4 pb-4 sm:px-5">
           <ContributionsPanel poolId={pool.id} />
         </div>
@@ -295,7 +325,6 @@ function CreatePoolForm({ onDone }: { onDone: () => void }) {
         .upload(path, file, { upsert: true, contentType: file.type });
 
       let finalBucket = firstBucket;
-      let publicUrl = "";
 
       if (uploadError) {
         const fallbackBucket = "avatars";
@@ -310,8 +339,7 @@ function CreatePoolForm({ onDone }: { onDone: () => void }) {
       const url = `${data.publicUrl}?v=${Date.now()}`;
       setImageUrl(url);
       setImagePreview(url);
-      publicUrl = url;
-      return publicUrl;
+      return url;
     } catch (ex) {
       setErr(ex instanceof Error ? ex.message : "Image upload failed.");
     } finally {
@@ -452,6 +480,213 @@ function CreatePoolForm({ onDone }: { onDone: () => void }) {
         <Button type="submit" size="sm" disabled={busy} className="gap-1.5">
           {busy ? <Loader2 className="size-3.5 animate-spin" /> : <PlusCircle className="size-3.5" />}
           Create Pool
+        </Button>
+      </div>
+    </form>
+  );
+}
+
+function EditPoolForm({ pool, onDone }: { pool: any; onDone: () => void }) {
+  const updatePool = useServerFn(adminUpdatePool);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  const [busy, setBusy] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const [err, setErr] = useState<string | null>(null);
+  const [imageUrl, setImageUrl] = useState(pool.image_url ?? "");
+  const [imagePreview, setImagePreview] = useState<string | null>(pool.image_url ?? null);
+  const [form, setForm] = useState({
+    title: pool.title ?? "",
+    description: pool.description ?? "",
+    vehicleModel: pool.vehicle_model ?? "",
+    vehicleType: (pool.vehicle_type ?? "motorcycle") as "motorcycle" | "vehicle",
+    targetAmountRands: String((pool.target_amount_cents ?? 0) / 100),
+    tier: (pool.tier ?? "retail") as "retail" | "partner",
+    minContributionRands: String((pool.min_contribution_cents ?? 0) / 100),
+    termDays: String(pool.term_days ?? 30),
+    returnRatePct: String(pool.return_rate_pct ?? 13),
+  });
+
+  const set = (key: keyof typeof form) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) =>
+    setForm((p) => ({ ...p, [key]: e.target.value }));
+
+  const uploadVehicleImage = async (file?: File) => {
+    if (!file) return;
+    if (!file.type.startsWith("image/")) {
+      setErr("Please choose an image file.");
+      return;
+    }
+    if (file.size > 5 * 1024 * 1024) {
+      setErr("Image must be 5 MB or smaller.");
+      return;
+    }
+
+    setErr(null);
+    setUploadingImage(true);
+    try {
+      const safeName = file.name.replace(/\s+/g, "-").toLowerCase();
+      const path = `vehicle-images/${Date.now()}-${safeName}`;
+      const firstBucket = "vehicle-images";
+      const { error: uploadError } = await supabase.storage
+        .from(firstBucket)
+        .upload(path, file, { upsert: true, contentType: file.type });
+
+      let finalBucket = firstBucket;
+      if (uploadError) {
+        const fallbackBucket = "avatars";
+        const fallbackResult = await supabase.storage
+          .from(fallbackBucket)
+          .upload(path, file, { upsert: true, contentType: file.type });
+        if (fallbackResult.error) throw new Error(fallbackResult.error.message);
+        finalBucket = fallbackBucket;
+      }
+
+      const { data } = supabase.storage.from(finalBucket).getPublicUrl(path);
+      const url = `${data.publicUrl}?v=${Date.now()}`;
+      setImageUrl(url);
+      setImagePreview(url);
+      return url;
+    } catch (ex) {
+      setErr(ex instanceof Error ? ex.message : "Image upload failed.");
+    } finally {
+      setUploadingImage(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+    return "";
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErr(null);
+    setBusy(true);
+    try {
+      await updatePool({
+        data: {
+          poolId: pool.id,
+          title: form.title,
+          description: form.description,
+          vehicleType: form.vehicleType,
+          vehicleModel: form.vehicleModel,
+          vehicleReg: pool.vehicle_reg ?? "",
+          targetAmountCents: Math.round(parseFloat(form.targetAmountRands) * 100),
+          tier: form.tier,
+          minContributionCents: Math.round(parseFloat(form.minContributionRands) * 100),
+          termDays: parseInt(form.termDays),
+          returnRatePct: parseFloat(form.returnRatePct),
+          weeklyRentalRevenueCents: pool.weekly_rental_revenue_cents ?? 60000,
+          imageUrl: imageUrl || null,
+          status: pool.status,
+        },
+      });
+      onDone();
+    } catch (ex) {
+      setErr(ex instanceof Error ? ex.message : "Failed to update pool");
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4 rounded-2xl border border-primary/20 bg-primary/5 p-5">
+      <h3 className="font-display font-bold text-foreground">Edit Asset Pool</h3>
+
+      {err && <p className="rounded-xl bg-destructive/10 px-3 py-2 text-sm text-destructive">{err}</p>}
+
+      <div className="grid gap-3 sm:grid-cols-2">
+        <div className="sm:col-span-2 space-y-1">
+          <Label htmlFor="edit-p-title">Pool Title *</Label>
+          <Input id="edit-p-title" value={form.title} onChange={set("title")} required />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="edit-p-vehicle-type">Vehicle Type</Label>
+          <select
+            id="edit-p-vehicle-type"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
+            value={form.vehicleType}
+            onChange={set("vehicleType") as any}
+          >
+            <option value="motorcycle">Motorcycle</option>
+            <option value="vehicle">Vehicle</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="edit-p-model">Vehicle Model</Label>
+          <Input id="edit-p-model" value={form.vehicleModel} onChange={set("vehicleModel")} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="edit-p-target">Target Amount (R)</Label>
+          <Input id="edit-p-target" type="number" min="1000" value={form.targetAmountRands} onChange={set("targetAmountRands")} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="edit-p-min">Min Contribution (R)</Label>
+          <Input id="edit-p-min" type="number" min="100" value={form.minContributionRands} onChange={set("minContributionRands")} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="edit-p-tier">Tier</Label>
+          <select
+            id="edit-p-tier"
+            className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm shadow-xs"
+            value={form.tier}
+            onChange={set("tier") as any}
+          >
+            <option value="retail">Retail Rider Pool</option>
+            <option value="partner">Fleet Partner Circle</option>
+          </select>
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="edit-p-rate">Return Rate (%)</Label>
+          <Input id="edit-p-rate" type="number" min="1" max="50" step="0.5" value={form.returnRatePct} onChange={set("returnRatePct")} />
+        </div>
+        <div className="space-y-1">
+          <Label htmlFor="edit-p-term">Term (days)</Label>
+          <Input id="edit-p-term" type="number" min="30" max="90" value={form.termDays} onChange={set("termDays")} />
+        </div>
+        <div className="sm:col-span-2 space-y-1">
+          <Label htmlFor="edit-p-desc">Description</Label>
+          <Input id="edit-p-desc" value={form.description} onChange={set("description")} />
+        </div>
+
+        <div className="sm:col-span-2 space-y-2">
+          <Label htmlFor="edit-p-image">Bike photo</Label>
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center">
+            <Input
+              id="edit-p-image"
+              value={imageUrl}
+              onChange={(e) => setImageUrl(e.target.value)}
+              placeholder="Paste a public image URL or upload a real bike photo"
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              className="shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploadingImage}
+            >
+              {uploadingImage ? <Loader2 className="size-3.5 animate-spin" /> : "Upload"}
+            </Button>
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => uploadVehicleImage(e.target.files?.[0])}
+            />
+          </div>
+          {imagePreview && (
+            <img
+              src={imagePreview}
+              alt="Asset preview"
+              className="h-32 w-full rounded-xl border border-border object-cover"
+            />
+          )}
+        </div>
+      </div>
+
+      <div className="flex gap-2 justify-end">
+        <Button type="button" variant="ghost" size="sm" onClick={onDone}>Cancel</Button>
+        <Button type="submit" size="sm" disabled={busy} className="gap-1.5">
+          {busy ? <Loader2 className="size-3.5 animate-spin" /> : <CheckCircle2 className="size-3.5" />}
+          Save Pool
         </Button>
       </div>
     </form>

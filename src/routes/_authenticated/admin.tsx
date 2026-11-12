@@ -17,6 +17,7 @@ import {
   getPayoutSettings,
   updatePayoutSettings,
 } from "@/server-fn/admin";
+import { adminApprovePoolContribution, adminRejectPoolContribution } from "@/server-fn/asset-pools";
 import { isUserAdmin } from "@/server-fn/investments";
 import { supabase } from "@/integrations/supabase/client";
 import { BrandMark } from "@/components/site-shell";
@@ -424,6 +425,8 @@ function AdminPage() {
   const fetchOverview = useServerFn(getAdminOverview);
   const approve = useServerFn(approveInvestment);
   const reject = useServerFn(rejectInvestment);
+  const approvePool = useServerFn(adminApprovePoolContribution);
+  const rejectPool = useServerFn(adminRejectPoolContribution);
   const changeRole = useServerFn(setUserRole);
   const fetchForecast = useServerFn(getPayoutForecast);
 
@@ -497,7 +500,31 @@ function AdminPage() {
     onError,
   });
 
-  const working = approveMut.isPending || rejectMut.isPending;
+  const approvePoolMut = useMutation({
+    mutationFn: (contributionId: string) =>
+      approvePool({ data: { contributionId } }),
+    onSuccess: async () => {
+      await refresh();
+      flash("ok", "Pool payment approved.");
+    },
+    onError,
+  });
+
+  const rejectPoolMut = useMutation({
+    mutationFn: (contributionId: string) =>
+      rejectPool({ data: { contributionId } }),
+    onSuccess: async () => {
+      await refresh();
+      flash("ok", "Pool payment rejected.");
+    },
+    onError,
+  });
+
+  const working =
+    approveMut.isPending ||
+    rejectMut.isPending ||
+    approvePoolMut.isPending ||
+    rejectPoolMut.isPending;
 
   /* ---------- CSV helpers ---------- */
 
@@ -774,62 +801,81 @@ function AdminPage() {
         </div>
       ) : (
         <div className="space-y-2.5">
-          {data.pending.map((p) => (
-            <div
-              key={p.id}
-              className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3.5 sm:p-4"
-            >
-              <div className="flex items-start justify-between gap-3">
-                <div className="min-w-0">
-                  <p className="font-display text-base font-bold text-foreground">
-                    {formatRandFromCents(p.amountCents)}
-                  </p>
-                  <p className="mt-0.5 truncate text-xs font-semibold text-foreground">
-                    {p.fullName ?? "—"}
-                  </p>
-                  <p className="truncate text-[11px] text-muted-foreground">
-                    {p.email ?? "—"} · {p.termDays}d ·{" "}
-                    {formatDate(p.createdAt)}
-                  </p>
-                  {p.paymentReference && (
-                    <p className="mt-1 inline-block rounded-md bg-card px-2 py-0.5 font-mono text-[10px] font-bold text-foreground">
-                      Ref: {p.paymentReference}
+          {data.pending.map((p) => {
+            const isPool = p.kind === "pool";
+
+            return (
+              <div
+                key={p.id}
+                className="rounded-2xl border border-amber-500/30 bg-amber-500/5 p-3.5 sm:p-4"
+              >
+                <div className="flex items-start justify-between gap-3">
+                  <div className="min-w-0">
+                    <div className="mb-1 flex flex-wrap items-center gap-2">
+                      <p className="font-display text-base font-bold text-foreground">
+                        {formatRandFromCents(p.amountCents)}
+                      </p>
+                      <span className="rounded-full bg-primary/10 px-1.5 py-0.5 text-[9px] font-bold uppercase text-primary">
+                        {isPool ? "Pool" : "Cycle"}
+                      </span>
+                    </div>
+                    <p className="mt-0.5 truncate text-xs font-semibold text-foreground">
+                      {p.fullName ?? "—"}
                     </p>
-                  )}
-                </div>
-                <div className="flex shrink-0 gap-1.5">
-                  <Button
-                    size="sm"
-                    disabled={working}
-                    onClick={() => approveMut.mutate(p.id)}
-                    className="h-8 rounded-lg text-xs font-bold"
-                  >
-                    <CheckCircle2 className="mr-1 size-3.5" />
-                    <span className="hidden sm:inline">Approve</span>
-                  </Button>
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    disabled={working}
-                    onClick={() => {
-                      if (
-                        window.confirm(
-                          `Reject ${formatRandFromCents(
-                            p.amountCents,
-                          )} from ${p.fullName ?? p.email ?? "this investor"}?`,
+                    <p className="truncate text-[11px] text-muted-foreground">
+                      {p.email ?? "—"} · {p.termDays}d · {formatDate(p.createdAt)}
+                    </p>
+                    {isPool && p.poolTitle && (
+                      <p className="mt-1 text-[10px] font-semibold uppercase tracking-wider text-amber-700">
+                        {p.poolTitle}
+                      </p>
+                    )}
+                    {p.paymentReference && (
+                      <p className="mt-1 inline-block rounded-md bg-card px-2 py-0.5 font-mono text-[10px] font-bold text-foreground">
+                        Ref: {p.paymentReference}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex shrink-0 gap-1.5">
+                    <Button
+                      size="sm"
+                      disabled={working}
+                      onClick={() =>
+                        isPool
+                          ? approvePoolMut.mutate(p.id)
+                          : approveMut.mutate(p.id)
+                      }
+                      className="h-8 rounded-lg text-xs font-bold"
+                    >
+                      <CheckCircle2 className="mr-1 size-3.5" />
+                      <span className="hidden sm:inline">Approve</span>
+                    </Button>
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      disabled={working}
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Reject ${formatRandFromCents(
+                              p.amountCents,
+                            )} from ${p.fullName ?? p.email ?? "this investor"}?`,
+                          )
                         )
-                      )
-                        rejectMut.mutate(p.id);
-                    }}
-                    className="h-8 rounded-lg text-xs font-bold text-destructive"
-                  >
-                    <XCircle className="mr-1 size-3.5" />
-                    <span className="hidden sm:inline">Reject</span>
-                  </Button>
+                          isPool
+                            ? rejectPoolMut.mutate(p.id)
+                            : rejectMut.mutate(p.id);
+                      }}
+                      className="h-8 rounded-lg text-xs font-bold text-destructive"
+                    >
+                      <XCircle className="mr-1 size-3.5" />
+                      <span className="hidden sm:inline">Reject</span>
+                    </Button>
+                  </div>
                 </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>

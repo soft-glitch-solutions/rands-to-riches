@@ -401,6 +401,15 @@ export const adminUpdatePool = createServerFn({ method: "POST" })
       poolId: z.string().uuid(),
       title: z.string().optional(),
       description: z.string().optional(),
+      vehicleType: z.enum(["motorcycle", "vehicle"]).optional(),
+      vehicleModel: z.string().optional(),
+      vehicleReg: z.string().optional(),
+      targetAmountCents: z.number().int().min(100000).optional(),
+      tier: z.enum(["retail", "partner"]).optional(),
+      minContributionCents: z.number().int().min(10000).optional(),
+      termDays: z.number().int().min(30).optional(),
+      returnRatePct: z.number().min(1).max(50).optional(),
+      weeklyRentalRevenueCents: z.number().int().optional(),
       status: z.enum(["filling", "active", "matured", "closed"]).optional(),
       driverId: z.string().uuid().nullable().optional(),
       imageUrl: z.string().nullable().optional(),
@@ -416,6 +425,15 @@ export const adminUpdatePool = createServerFn({ method: "POST" })
     const patch: Record<string, unknown> = {};
     if (updates.title !== undefined) patch.title = updates.title;
     if (updates.description !== undefined) patch.description = updates.description;
+    if (updates.vehicleType !== undefined) patch.vehicle_type = updates.vehicleType;
+    if (updates.vehicleModel !== undefined) patch.vehicle_model = updates.vehicleModel;
+    if (updates.vehicleReg !== undefined) patch.vehicle_reg = updates.vehicleReg;
+    if (updates.targetAmountCents !== undefined) patch.target_amount_cents = updates.targetAmountCents;
+    if (updates.tier !== undefined) patch.tier = updates.tier;
+    if (updates.minContributionCents !== undefined) patch.min_contribution_cents = updates.minContributionCents;
+    if (updates.termDays !== undefined) patch.term_days = updates.termDays;
+    if (updates.returnRatePct !== undefined) patch.return_rate_pct = updates.returnRatePct;
+    if (updates.weeklyRentalRevenueCents !== undefined) patch.weekly_rental_revenue_cents = updates.weeklyRentalRevenueCents;
     if (updates.status !== undefined) patch.status = updates.status;
     if (updates.driverId !== undefined) patch.driver_id = updates.driverId;
     if (updates.imageUrl !== undefined) patch.image_url = updates.imageUrl;

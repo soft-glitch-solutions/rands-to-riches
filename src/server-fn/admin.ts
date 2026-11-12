@@ -39,6 +39,9 @@ export interface AdminPendingInvestment {
   termDays: number;
   paymentReference: string | null;
   createdAt: string;
+  kind: "investment" | "pool";
+  poolId?: string | null;
+  poolTitle?: string | null;
 }
 
 export interface AdminRecentActivity {
@@ -67,6 +70,15 @@ export interface PayoutBucket {
   principalCents: number;
   profitCents: number;
   totalCents: number;
+}
+
+export function mergePendingPayments<T extends { createdAt: string }>(
+  investmentRows: T[],
+  poolRows: T[],
+): T[] {
+  return [...investmentRows, ...poolRows].sort(
+    (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+  );
 }
 
 export interface PayoutForecast {
@@ -137,7 +149,7 @@ export const getAdminOverview = createServerFn({ method: "GET" })
   .handler(async ({ context }): Promise<AdminOverview> => {
     const supabaseAdmin = await requireAdmin(context);
 
-    const [profilesResult, investmentsResult, rolesResult, usersResult] =
+    const [profilesResult, investmentsResult, poolContributionsResult, rolesResult, usersResult] =
       await Promise.all([
         supabaseAdmin
           .from("profiles")
@@ -149,12 +161,19 @@ export const getAdminOverview = createServerFn({ method: "GET" })
             "id, user_id, amount_cents, status, maturity_action, term_days, payment_reference, created_at, matures_at, updated_at",
           )
           .order("created_at", { ascending: false }),
+        supabaseAdmin
+          .from("pool_contributions")
+          .select(
+            "id, user_id, pool_id, amount_cents, status, tier, payment_reference, created_at, asset_pools(title, term_days)",
+          )
+          .order("created_at", { ascending: false }),
         supabaseAdmin.from("user_roles").select("user_id, role"),
         supabaseAdmin.auth.admin.listUsers(),
       ]);
 
     if (profilesResult.error) throw new Error(profilesResult.error.message);
     if (investmentsResult.error) throw new Error(investmentsResult.error.message);
+    if (poolContributionsResult.error) throw new Error(poolContributionsResult.error.message);
     if (rolesResult.error) throw new Error(rolesResult.error.message);
     if (usersResult.error) throw new Error(usersResult.error.message);
 
@@ -174,20 +193,39 @@ export const getAdminOverview = createServerFn({ method: "GET" })
     }
 
     const all = investmentsResult.data ?? [];
+    const poolPending = (poolContributionsResult.data ?? [])
+      .filter((contribution) => contribution.status === "pending")
+      .map((contribution) => ({
+        id: contribution.id,
+        userId: contribution.user_id,
+        fullName: nameByUser.get(contribution.user_id) ?? null,
+        email: emailByUser.get(contribution.user_id) ?? null,
+        amountCents: contribution.amount_cents,
+        termDays: contribution.asset_pools?.term_days ?? 30,
+        paymentReference: contribution.payment_reference ?? null,
+        createdAt: contribution.created_at,
+        kind: "pool" as const,
+        poolId: contribution.pool_id,
+        poolTitle: contribution.asset_pools?.title ?? "Pool contribution",
+      }));
 
     /* ---------- Pending ---------- */
-    const pending: AdminPendingInvestment[] = all
-      .filter((inv) => inv.status === "pending")
-      .map((inv) => ({
-        id: inv.id,
-        userId: inv.user_id,
-        fullName: nameByUser.get(inv.user_id) ?? null,
-        email: emailByUser.get(inv.user_id) ?? null,
-        amountCents: inv.amount_cents,
-        termDays: inv.term_days,
-        paymentReference: inv.payment_reference ?? null,
-        createdAt: inv.created_at,
-      }));
+    const pending: AdminPendingInvestment[] = mergePendingPayments(
+      all
+        .filter((inv) => inv.status === "pending")
+        .map((inv) => ({
+          id: inv.id,
+          userId: inv.user_id,
+          fullName: nameByUser.get(inv.user_id) ?? null,
+          email: emailByUser.get(inv.user_id) ?? null,
+          amountCents: inv.amount_cents,
+          termDays: inv.term_days,
+          paymentReference: inv.payment_reference ?? null,
+          createdAt: inv.created_at,
+          kind: "investment" as const,
+        })),
+      poolPending,
+    );
 
     /* ---------- Investors ---------- */
     const investors: AdminInvestorRow[] = (profilesResult.data ?? []).map(
