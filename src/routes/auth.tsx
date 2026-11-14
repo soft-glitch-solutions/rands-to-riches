@@ -1,8 +1,17 @@
 import { createFileRoute, Link, redirect, useNavigate } from "@tanstack/react-router";
-import { useState } from "react";
+import { useEffect, useRef, useState } from "react";
+import {
+  motion,
+  useMotionValue,
+  useReducedMotion,
+  useScroll,
+  useSpring,
+  useTransform,
+} from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { FadeIn } from "@/components/fade-in";
 import { clampInvestment, formatRand } from "@/lib/investment";
 import {
   savePendingAmount,
@@ -11,7 +20,17 @@ import {
   signInWithGoogle,
 } from "@/lib/social-auth";
 import { supabase } from "@/integrations/supabase/client";
-import { Loader2, Eye, ShieldCheck, TrendingUp, Car, Sparkles } from "lucide-react";
+import {
+  Loader2,
+  Eye,
+  ShieldCheck,
+  TrendingUp,
+  Car,
+  Sparkles,
+  ArrowRight,
+  CheckCircle2,
+  Zap,
+} from "lucide-react";
 import { BrandMark } from "@/components/site-shell";
 
 export const Route = createFileRoute("/auth")({
@@ -34,7 +53,6 @@ export const Route = createFileRoute("/auth")({
   beforeLoad: async ({ search }) => {
     const { data } = await supabase.auth.getUser();
     if (data.user) {
-      // Signed-in visitors go straight to their dashboard, preserving amount.
       throw redirect({
         to: "/dashboard",
         search: search.amount !== undefined ? { amount: search.amount } : undefined,
@@ -44,7 +62,9 @@ export const Route = createFileRoute("/auth")({
   component: AuthPage,
 });
 
-/* ---------- Social icons (unchanged) ---------- */
+// ============================================================
+// SOCIAL ICONS
+// ============================================================
 
 function AppleIcon({ className }: { className?: string }) {
   return (
@@ -73,11 +93,15 @@ function GoogleIcon({ className }: { className?: string }) {
   );
 }
 
-/* ---------- Page ---------- */
+// ============================================================
+// PAGE
+// ============================================================
 
 function AuthPage() {
   const navigate = useNavigate();
   const { amount } = Route.useSearch();
+  const prefersReduced = useReducedMotion();
+
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState<string | null>(null);
@@ -123,8 +147,6 @@ function AuthPage() {
       setError(err);
       return;
     }
-    // Social sign-in typically navigates away (OAuth) — but if a session
-    // already exists (e.g. Apple on Safari), land on the dashboard now.
     const { data } = await supabase.auth.getSession();
     if (data.session) goDashboard();
   };
@@ -134,11 +156,9 @@ function AuthPage() {
       ? ({ to: "/signup", search: { amount } } as const)
       : ({ to: "/signup" } as const);
 
-  /* ---------- Form panel ---------- */
-
   const formPanel = (
-    <div className="w-full max-w-md">
-      <div className="rounded-3xl border border-border bg-card p-6 shadow-xl shadow-primary/5 sm:p-8">
+    <div className="w-full max-w-md mx-auto">
+      <div className="rounded-[1.75rem] border border-border bg-card p-6 shadow-xl sm:p-8">
         <div className="mb-6 flex items-center justify-between">
           <div>
             <h1 className="font-display text-2xl font-extrabold text-foreground">
@@ -218,10 +238,12 @@ function AuthPage() {
           <Button
             type="submit"
             disabled={busy}
-            className="h-11 w-full rounded-xl font-bold"
+            className="h-11 w-full rounded-full font-bold"
           >
             {busy ? (
-              <><Loader2 className="mr-2 size-4 animate-spin" /> Signing in…</>
+              <>
+                <Loader2 className="mr-2 size-4 animate-spin" /> Signing in…
+              </>
             ) : (
               "Sign in"
             )}
@@ -230,19 +252,54 @@ function AuthPage() {
 
         <div className="my-5 flex items-center gap-3">
           <span className="h-px flex-1 bg-border" />
-          <span className="text-[11px] font-medium text-muted-foreground">or continue with</span>
+          <span className="text-[11px] font-medium text-muted-foreground">
+            or continue with
+          </span>
           <span className="h-px flex-1 bg-border" />
         </div>
 
         <div className="grid grid-cols-3 gap-2">
-          <Button type="button" variant="outline" disabled={socialBusy !== null} onClick={() => social("google")} aria-label="Continue with Google" className="h-11 rounded-xl">
-            {socialBusy === "google" ? <Loader2 className="size-4 animate-spin" /> : <GoogleIcon className="size-5" />}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={socialBusy !== null}
+            onClick={() => social("google")}
+            aria-label="Continue with Google"
+            className="h-11 rounded-full"
+          >
+            {socialBusy === "google" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <GoogleIcon className="size-5" />
+            )}
           </Button>
-          <Button type="button" variant="outline" disabled={socialBusy !== null} onClick={() => social("apple")} aria-label="Continue with Apple" className="h-11 rounded-xl">
-            {socialBusy === "apple" ? <Loader2 className="size-4 animate-spin" /> : <AppleIcon className="size-5" />}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={socialBusy !== null}
+            onClick={() => social("apple")}
+            aria-label="Continue with Apple"
+            className="h-11 rounded-full"
+          >
+            {socialBusy === "apple" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <AppleIcon className="size-5" />
+            )}
           </Button>
-          <Button type="button" variant="outline" disabled={socialBusy !== null} onClick={() => social("facebook")} aria-label="Continue with Facebook" className="h-11 rounded-xl">
-            {socialBusy === "facebook" ? <Loader2 className="size-4 animate-spin" /> : <FacebookIcon className="size-5 text-[#1877F2]" />}
+          <Button
+            type="button"
+            variant="outline"
+            disabled={socialBusy !== null}
+            onClick={() => social("facebook")}
+            aria-label="Continue with Facebook"
+            className="h-11 rounded-full"
+          >
+            {socialBusy === "facebook" ? (
+              <Loader2 className="size-4 animate-spin" />
+            ) : (
+              <FacebookIcon className="size-5 text-[#1877F2]" />
+            )}
           </Button>
         </div>
 
@@ -255,13 +312,21 @@ function AuthPage() {
       </div>
 
       <div className="mt-4 flex flex-col gap-2 sm:flex-row">
-        <Button asChild variant="ghost" className="h-10 flex-1 rounded-xl text-xs text-muted-foreground hover:text-foreground">
+        <Button
+          asChild
+          variant="ghost"
+          className="h-10 flex-1 rounded-full text-xs text-muted-foreground hover:text-foreground"
+        >
           <Link to="/demo">
             <Eye className="mr-2 size-3.5" />
             Preview investor demo
           </Link>
         </Button>
-        <Button asChild variant="outline" className="h-10 flex-1 rounded-xl border-primary/20 text-xs font-semibold text-primary hover:bg-primary/5">
+        <Button
+          asChild
+          variant="outline"
+          className="h-10 flex-1 rounded-full border-primary/20 text-xs font-semibold text-primary hover:bg-primary/5"
+        >
           <Link to="/admin-demo">Admin payment demo →</Link>
         </Button>
       </div>
@@ -273,7 +338,15 @@ function AuthPage() {
       <BrandMark />
       <div className="space-y-3">
         <h2 className="font-display text-3xl font-extrabold leading-tight text-foreground xl:text-4xl">
-          Put your money on the road.
+          Put your money on{" "}
+          <span className="relative inline-block text-primary">
+            the road
+            <span
+              aria-hidden
+              className="absolute -bottom-1 left-0 right-0 h-[6px] rounded-full bg-brand-green opacity-90"
+            />
+          </span>
+          .
         </h2>
         <p className="max-w-md text-sm leading-relaxed text-muted-foreground xl:text-base">
           Fund e-hailing, delivery, and shuttle vehicles that earn every day.
@@ -305,55 +378,204 @@ function AuthPage() {
   );
 
   return (
-    <div className="min-h-screen bg-background">
-      {/* MOBILE */}
-      <div className="lg:hidden">
-        <div className="mx-auto max-w-md px-4 py-6">
-          <div className="mb-5 flex items-center justify-between">
+    <div className="relative min-h-screen bg-background">
+      <AnimatedBackground prefersReduced={!!prefersReduced} />
+      <BlueFlowTransition />
+
+      {/* ================= MOBILE ================= */}
+      <div className="relative z-10 lg:hidden">
+        <div className="mx-auto max-w-md px-4 py-8">
+          <div className="mb-6 flex items-center justify-between">
             <BrandMark />
-            <Link to="/" className="text-[11px] font-semibold text-muted-foreground hover:text-foreground">
+            <Link
+              to="/"
+              className="text-[11px] font-semibold text-muted-foreground hover:text-foreground"
+            >
               Back to site
             </Link>
           </div>
 
-          <div className="mb-5 rounded-2xl border border-primary/20 bg-primary/5 p-3.5">
-            <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
-              Returns from 13%–25%
+          {/* Hero mini-pitch */}
+          <motion.div
+            initial={prefersReduced ? false : { opacity: 0, x: -30 }}
+            whileInView={prefersReduced ? undefined : { opacity: 1, x: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+            className="mb-6"
+          >
+            <h2 className="font-display text-3xl font-extrabold leading-tight text-foreground">
+              Put your money on{" "}
+              <span className="relative inline-block text-primary">
+                the road
+                <span
+                  aria-hidden
+                  className="absolute -bottom-1 left-0 right-0 h-[5px] rounded-full bg-brand-green opacity-90"
+                />
+              </span>
+              .
+            </h2>
+            <p className="mt-3 text-sm text-muted-foreground">
+              Fund e-hailing, delivery, and shuttle vehicles that earn every day.
             </p>
-            <p className="mt-0.5 text-xs text-muted-foreground">
-              Backed by real e-hailing, delivery & shuttle revenue.
-            </p>
-          </div>
 
-          {formPanel}
-        </div>
-      </div>
+            {amount !== undefined && (
+              <div className="mt-4 rounded-2xl border border-primary/20 bg-primary/5 p-3.5">
+                <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                  Resuming with {formatRand(amount)}
+                </p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Sign in to continue your investment.
+                </p>
+              </div>
+            )}
+          </motion.div>
 
-      {/* DESKTOP */}
-      <div className="hidden min-h-screen lg:grid lg:grid-cols-2">
-        <div className="relative flex items-center justify-center overflow-hidden bg-gradient-to-br from-primary/10 via-background to-background px-10 py-12">
-          <div
-            className="pointer-events-none absolute inset-0 opacity-40"
-            style={{
-              background:
-                "radial-gradient(circle at 20% 20%, oklch(0.58 0.19 254 / 0.18), transparent 55%), radial-gradient(circle at 80% 80%, oklch(0.70 0.17 152 / 0.15), transparent 55%)",
-            }}
-          />
-          <div className="relative z-10 max-w-md">{brandPitch}</div>
-        </div>
-
-        <div className="flex items-center justify-center bg-card/40 px-10 py-12">
-          <div className="w-full max-w-md">
+          <motion.div
+            initial={prefersReduced ? false : { opacity: 0, y: 20 }}
+            whileInView={prefersReduced ? undefined : { opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1], delay: 0.1 }}
+          >
             {formPanel}
-            <p className="mt-6 text-center text-[11px] text-muted-foreground">
-              By continuing you agree to our{" "}
-              <Link to="/terms" className="underline hover:text-foreground">Terms</Link>{" "}
-              and{" "}
-              <Link to="/privacy" className="underline hover:text-foreground">Privacy Policy</Link>.
-            </p>
+          </motion.div>
+        </div>
+      </div>
+
+      {/* ================= DESKTOP ================= */}
+      <div className="relative z-10 hidden min-h-screen lg:grid lg:grid-cols-2">
+        {/* LEFT — Brand pitch */}
+        <div className="relative flex items-center justify-center overflow-hidden px-10 py-12">
+          <div className="relative z-10 max-w-md">
+            <motion.div
+              initial={prefersReduced ? false : { opacity: 0, x: -40 }}
+              whileInView={prefersReduced ? undefined : { opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {brandPitch}
+            </motion.div>
+          </div>
+        </div>
+
+        {/* RIGHT — Form */}
+        <div className="relative flex items-center justify-center px-10 py-12">
+          <div className="w-full max-w-md">
+            <motion.div
+              initial={prefersReduced ? false : { opacity: 0, x: 40 }}
+              whileInView={prefersReduced ? undefined : { opacity: 1, x: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+            >
+              {amount !== undefined && (
+                <div className="mb-5 rounded-2xl border border-primary/20 bg-primary/5 p-4">
+                  <p className="text-[11px] font-bold uppercase tracking-wider text-primary">
+                    Resuming with {formatRand(amount)}
+                  </p>
+                  <p className="mt-0.5 text-xs text-muted-foreground">
+                    Sign in to continue your investment.
+                  </p>
+                </div>
+              )}
+              {formPanel}
+              <p className="mt-6 text-center text-[11px] text-muted-foreground">
+                By continuing you agree to our{" "}
+                <Link to="/terms" className="underline hover:text-foreground">
+                  Terms
+                </Link>{" "}
+                and{" "}
+                <Link to="/privacy" className="underline hover:text-foreground">
+                  Privacy Policy
+                </Link>
+                .
+              </p>
+            </motion.div>
           </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+// ============================================================
+// BLUE FLOW TRANSITION
+// ============================================================
+
+function BlueFlowTransition() {
+  const prefersReduced = useReducedMotion();
+  if (prefersReduced) return null;
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+    >
+      <motion.div
+        className="absolute -left-[20%] top-0 h-[60vh] w-[60vw] rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, hsl(var(--primary) / 0.14) 0%, transparent 70%)",
+        }}
+        animate={{ y: ["0%", "40%", "0%"], x: ["0%", "10%", "0%"] }}
+        transition={{ duration: 30, repeat: Infinity, ease: "easeInOut" }}
+      />
+      <motion.div
+        className="absolute -right-[20%] top-[30vh] h-[70vh] w-[50vw] rounded-full"
+        style={{
+          background:
+            "radial-gradient(circle, hsl(var(--primary) / 0.10) 0%, transparent 70%)",
+        }}
+        animate={{ y: ["0%", "-30%", "0%"], x: ["0%", "-8%", "0%"] }}
+        transition={{ duration: 40, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </div>
+  );
+}
+
+// ============================================================
+// ANIMATED BACKGROUND
+// ============================================================
+
+function AnimatedBackground({ prefersReduced }: { prefersReduced: boolean }) {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const smoothX = useSpring(mouseX, { damping: 40, stiffness: 200 });
+  const smoothY = useSpring(mouseY, { damping: 40, stiffness: 200 });
+
+  useEffect(() => {
+    if (prefersReduced || typeof window === "undefined") return;
+    if (window.matchMedia("(hover: none)").matches) return;
+    const onMove = (e: MouseEvent) => {
+      mouseX.set((e.clientX / window.innerWidth - 0.5) * 60);
+      mouseY.set((e.clientY / window.innerHeight - 0.5) * 60);
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [prefersReduced, mouseX, mouseY]);
+
+  const orb1X = useTransform(smoothX, [-60, 60], [-20, 20]);
+  const orb1Y = useTransform(smoothY, [-60, 60], [-15, 15]);
+
+  return (
+    <div
+      aria-hidden
+      className="pointer-events-none fixed inset-0 z-0 overflow-hidden"
+    >
+      <div className="absolute inset-0 bg-background" />
+      <div
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+          color: "hsl(var(--primary))",
+        }}
+      />
+      <motion.div
+        className="absolute -top-32 -left-24 size-[520px] rounded-full bg-primary/[0.06]"
+        style={prefersReduced ? undefined : { x: orb1X, y: orb1Y }}
+      />
+      <div className="absolute top-1/3 -right-32 size-[480px] rounded-full bg-brand-green/[0.06]" />
+      <div className="absolute bottom-0 left-1/3 size-[420px] rounded-full bg-accent/[0.08]" />
     </div>
   );
 }

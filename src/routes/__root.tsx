@@ -10,25 +10,96 @@ import {
   type ErrorComponentProps,
 } from "@tanstack/react-router";
 import { useEffect, type ReactNode } from "react";
+import { motion, useMotionValue, useSpring, useTransform, useReducedMotion } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { takePendingAmount } from "@/lib/social-auth";
 
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 
+// ============================================================
+// GLOBAL ANIMATED BACKGROUND
+// ============================================================
+
+function GlobalAnimatedBackground({ prefersReduced }: { prefersReduced: boolean }) {
+  const mouseX = useMotionValue(0);
+  const mouseY = useMotionValue(0);
+  const smoothX = useSpring(mouseX, { damping: 40, stiffness: 200 });
+  const smoothY = useSpring(mouseY, { damping: 40, stiffness: 200 });
+
+  useEffect(() => {
+    if (prefersReduced || typeof window === "undefined") return;
+    if (window.matchMedia("(hover: none)").matches) return;
+    const onMove = (e: MouseEvent) => {
+      mouseX.set((e.clientX / window.innerWidth - 0.5) * 60);
+      mouseY.set((e.clientY / window.innerHeight - 0.5) * 60);
+    };
+    window.addEventListener("mousemove", onMove, { passive: true });
+    return () => window.removeEventListener("mousemove", onMove);
+  }, [prefersReduced, mouseX, mouseY]);
+
+  const orb1X = useTransform(smoothX, [-60, 60], [-20, 20]);
+  const orb1Y = useTransform(smoothY, [-60, 60], [-15, 15]);
+  const orb2X = useTransform(smoothX, [-60, 60], [15, -15]);
+  const orb2Y = useTransform(smoothY, [-60, 60], [12, -12]);
+  const orb3X = useTransform(smoothX, [-60, 60], [-10, 10]);
+  const orb3Y = useTransform(smoothY, [-60, 60], [8, -8]);
+
+  return (
+    <div aria-hidden className="pointer-events-none fixed inset-0 -z-10 overflow-hidden">
+      <div className="absolute inset-0 bg-[#FAFAFA]" />
+      
+      <div
+        className="absolute inset-0 opacity-[0.03]"
+        style={{
+          backgroundImage:
+            "linear-gradient(to right, currentColor 1px, transparent 1px), linear-gradient(to bottom, currentColor 1px, transparent 1px)",
+          backgroundSize: "64px 64px",
+          color: "hsl(var(--primary))",
+        }}
+      />
+
+      <motion.div
+        className="absolute -top-32 -left-24 size-[520px] rounded-full bg-blue-300/30 blur-[100px]"
+        style={prefersReduced ? undefined : { x: orb1X, y: orb1Y }}
+        animate={prefersReduced ? undefined : { scale: [1, 1.15, 1], opacity: [0.3, 0.5, 0.3] }}
+        transition={{ duration: 14, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      <motion.div
+        className="absolute top-1/3 -right-32 size-[480px] rounded-full bg-emerald-300/20 blur-[110px]"
+        style={prefersReduced ? undefined : { x: orb2X, y: orb2Y }}
+        animate={prefersReduced ? undefined : { scale: [1.1, 0.9, 1.1], opacity: [0.2, 0.4, 0.2] }}
+        transition={{ duration: 18, repeat: Infinity, ease: "easeInOut" }}
+      />
+
+      <motion.div
+        className="absolute bottom-0 left-1/3 size-[420px] rounded-full bg-purple-300/20 blur-[100px]"
+        style={prefersReduced ? undefined : { x: orb3X, y: orb3Y }}
+        animate={prefersReduced ? undefined : { scale: [0.95, 1.15, 0.95], opacity: [0.15, 0.35, 0.15] }}
+        transition={{ duration: 16, repeat: Infinity, ease: "easeInOut" }}
+      />
+    </div>
+  );
+}
+
+// ============================================================
+// 404 NOT FOUND
+// ============================================================
+
 function NotFoundComponent() {
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-7xl font-bold text-foreground">404</h1>
-        <h2 className="mt-4 text-xl font-semibold text-foreground">Page not found</h2>
-        <p className="mt-2 text-sm text-muted-foreground">
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="max-w-xl text-center">
+        <h1 className="font-display text-8xl sm:text-9xl font-extrabold tracking-tighter text-black">404</h1>
+        <h2 className="mt-6 text-3xl font-bold text-foreground">Page not found</h2>
+        <p className="mt-4 text-lg text-muted-foreground">
           The page you're looking for doesn't exist or has been moved.
         </p>
-        <div className="mt-6">
+        <div className="mt-8">
           <Link
             to="/"
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-base font-bold text-primary-foreground transition-transform hover:scale-105 active:scale-95"
           >
             Go home
           </Link>
@@ -38,6 +109,10 @@ function NotFoundComponent() {
   );
 }
 
+// ============================================================
+// ERROR COMPONENT
+// ============================================================
+
 function ErrorComponent({ error, reset }: ErrorComponentProps) {
   console.error(error);
   const router = useRouter();
@@ -46,27 +121,27 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
   }, [error]);
 
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background px-4">
-      <div className="max-w-md text-center">
-        <h1 className="text-xl font-semibold tracking-tight text-foreground">
+    <div className="flex min-h-screen items-center justify-center px-4">
+      <div className="max-w-xl text-center">
+        <h1 className="font-display text-3xl sm:text-4xl font-extrabold tracking-tight text-foreground">
           This page didn't load
         </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
+        <p className="mt-4 text-lg text-muted-foreground">
           Something went wrong on our end. You can try refreshing or head back home.
         </p>
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        <div className="mt-8 flex flex-wrap justify-center gap-4">
           <button
             onClick={() => {
               router.invalidate();
               reset();
             }}
-            className="inline-flex items-center justify-center rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            className="inline-flex items-center justify-center rounded-full bg-primary px-8 py-4 text-base font-bold text-primary-foreground transition-transform hover:scale-105 active:scale-95"
           >
             Try again
           </button>
           <a
             href="/"
-            className="inline-flex items-center justify-center rounded-md border border-input bg-background px-4 py-2 text-sm font-medium text-foreground transition-colors hover:bg-accent"
+            className="inline-flex items-center justify-center rounded-full border border-input bg-white/50 backdrop-blur-sm px-8 py-4 text-base font-bold text-foreground transition-transform hover:scale-105 active:scale-95"
           >
             Go home
           </a>
@@ -75,6 +150,10 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
     </div>
   );
 }
+
+// ============================================================
+// SCHEMA
+// ============================================================
 
 const SCHEMA_JSON_LD = JSON.stringify({
   "@context": "https://schema.org",
@@ -125,6 +204,10 @@ const SCHEMA_JSON_LD = JSON.stringify({
     },
   ],
 });
+
+// ============================================================
+// ROUTE
+// ============================================================
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   head: () => ({
@@ -212,6 +295,7 @@ function RootShell({ children }: { children: ReactNode }) {
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
   const navigate = useNavigate();
+  const prefersReduced = useReducedMotion();
 
   useEffect(() => {
     if (typeof window === "undefined") return;
@@ -262,8 +346,13 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
+      {/* Global Google Labs Style Background */}
+      <GlobalAnimatedBackground prefersReduced={!!prefersReduced} />
+      
       {/* Required: nested routes render here. Removing <Outlet /> breaks all child routes. */}
-      <Outlet />
+      <div className="relative z-0">
+        <Outlet />
+      </div>
     </QueryClientProvider>
   );
 }
